@@ -159,7 +159,7 @@ def get_chat_session_history(
 
     return PaginatedReturn(
         items=[
-            ChatSessionMinimal.from_chat_session_snapshot(chat_session)
+            ChatSessionMinimal.from_chat_session(chat_session)
             for chat_session in page_of_chat_sessions
         ],
         total_items=total_filtered_chat_sessions_count,
