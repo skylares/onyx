@@ -1,12 +1,23 @@
+import { useState } from "react";
 import {
   type User,
   UserRole,
   InvitedUserSnapshot,
   USER_ROLE_LABELS,
 } from "@/lib/types";
-import { useState } from "react";
+import usePaginatedFetch from "@/hooks/usePaginatedFetch";
+import UserRoleDropdown from "./buttons/UserRoleDropdown";
+import DeleteUserButton from "./buttons/DeleteUserButton";
+import DeactivateUserButton from "./buttons/DeactivateUserButton";
 import CenteredPageSelector from "./CenteredPageSelector";
 import { PopupSpec } from "@/components/admin/connectors/Popup";
+import { TableHeader } from "@/components/ui/table";
+import { ThreeDotsLoader } from "@/components/Loading";
+import { ErrorCallout } from "@/components/ErrorCallout";
+import { InviteUserButton } from "./buttons/InviteUserButton";
+import { useUser } from "@/components/user/UserProvider";
+import { LeaveOrganizationButton } from "./buttons/LeaveOrganizationButton";
+import { NEXT_PUBLIC_CLOUD_ENABLED } from "@/lib/constants";
 import {
   Table,
   TableHead,
@@ -14,14 +25,6 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
-import { TableHeader } from "@/components/ui/table";
-import UserRoleDropdown from "./buttons/UserRoleDropdown";
-import DeleteUserButton from "./buttons/DeleteUserButton";
-import DeactivateUserButton from "./buttons/DeactivateUserButton";
-import usePaginatedFetch from "@/hooks/usePaginatedFetch";
-import { ThreeDotsLoader } from "@/components/Loading";
-import { ErrorCallout } from "@/components/ErrorCallout";
-import { InviteUserButton } from "./buttons/InviteUserButton";
 import {
   Select,
   SelectContent,
@@ -32,9 +35,6 @@ import {
 
 const ITEMS_PER_PAGE = 10;
 const PAGES_PER_BATCH = 2;
-import { useUser } from "@/components/user/UserProvider";
-import { LeaveOrganizationButton } from "./buttons/LeaveOrganizationButton";
-import { NEXT_PUBLIC_CLOUD_ENABLED } from "@/lib/constants";
 
 interface Props {
   invitedUsers: InvitedUserSnapshot[];

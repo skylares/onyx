@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { GenericConfirmModal } from "@/components/modals/GenericConfirmModal";
 import { useState } from "react";
 
+import { FiUserPlus, FiUserMinus } from "react-icons/fi";
+
 export const InviteUserButton = ({
   user,
   invited,
@@ -126,8 +128,9 @@ export const InviteUserButton = ({
         onClick={() => setShowInviteModal(true)}
         disabled={isMutating}
         size="sm"
+        variant="ghost"
       >
-        {invited ? "Uninvite" : "Invite"}
+        {invited ? <FiUserMinus /> : <FiUserPlus />}
       </Button>
     </>
   );

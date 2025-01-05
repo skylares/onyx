@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import useSWRMutation from "swr/mutation";
 import userMutationFetcher from "@/lib/admin/users/userMutationFetcher";
 
+import { FiPlusCircle, FiMinusCircle } from "react-icons/fi";
+
 const DeactivateUserButton = ({
   user,
   deactivate,
@@ -38,8 +40,9 @@ const DeactivateUserButton = ({
       onClick={() => trigger({ user_email: user.email })}
       disabled={isMutating}
       size="sm"
+      variant="ghost"
     >
-      {deactivate ? "Deactivate" : "Activate"}
+      {deactivate ? <FiMinusCircle /> : <FiPlusCircle />}
     </Button>
   );
 };

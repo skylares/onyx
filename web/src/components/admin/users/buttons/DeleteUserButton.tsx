@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { DeleteEntityModal } from "@/components/modals/DeleteEntityModal";
 
+import { FiTrash2 } from "react-icons/fi";
+
 const DeleteUserButton = ({
   user,
   setPopup,
@@ -52,9 +54,10 @@ const DeleteUserButton = ({
         onClick={() => setShowDeleteModal(true)}
         disabled={isMutating}
         size="sm"
-        variant="destructive"
+        variant="ghost"
+        title="Delete User"
       >
-        Delete
+        <FiTrash2 className="text-red-500" />
       </Button>
     </>
   );
