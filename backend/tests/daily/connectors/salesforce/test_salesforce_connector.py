@@ -51,9 +51,23 @@ def test_salesforce_connector_basic(salesforce_connector: SalesforceConnector) -
     assert len(all_docs) == 6
     assert target_test_doc is not None
 
-    test_data = load_test_data()
+    # The order of the sections and of the content of the text fields is not deterministic,
+    # so we check the links are present and the text isn't empty
+    received_links: set[str] = set()
+    for section in target_test_doc.sections:
+        assert section.link
+        assert section.text
+        received_links.add(section.link)
+
+    expected_links = set(test_data["expected_links"])
+    assert received_links == expected_links
+
     assert target_test_doc.source == DocumentSource.SALESFORCE
-    assert target_test_doc.semantic_identifier == "Unknown Object"
+    assert target_test_doc.semantic_identifier == test_data["semantic_identifier"]
+    assert target_test_doc.metadata == test_data["metadata"]
+    assert target_test_doc.primary_owners == test_data["primary_owners"]
+    assert target_test_doc.secondary_owners == test_data["secondary_owners"]
+    assert target_test_doc.title == test_data["title"]
 
 
 # TODO: make the credentials not expire

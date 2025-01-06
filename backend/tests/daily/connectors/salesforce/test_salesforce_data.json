@@ -1,17 +1,14 @@
 {
   "id": "SALESFORCE_001fI000005drUcQAI",
-  "mailing_state": "IL",
-  "mailing_country": "USA",
-  "email": "m.brown@globalindustries.com",
-  "active_tracker_count": 0,
-  "is_email_bounced": false,
-  "mailing_street": "456 Market St",
-  "last_name": "Brown",
-  "phone": "(312) 555-0456",
-  "has_opted_out_of_email": false,
-  "title": "CTO",
-  "mailing_postal_code": "60601",
-  "first_name": "Michael",
-  "is_deleted": false,
-  "mailing_city": "Chicago"
+  "expected_links": [
+    "https://customization-ruby-2195.my.salesforce.com/001fI000005drUcQAI",
+    "https://customization-ruby-2195.my.salesforce.com/003fI000001jiCPQAY",
+    "https://customization-ruby-2195.my.salesforce.com/017fI00000T7hvsQAB",
+    "https://customization-ruby-2195.my.salesforce.com/006fI000000rDvBQAU"
+  ],
+  "semantic_identifier": "Unknown Object",
+  "metadata": {},
+  "primary_owners": null,
+  "secondary_owners": null,
+  "title": null
 }
