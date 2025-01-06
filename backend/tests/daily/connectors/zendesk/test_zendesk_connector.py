@@ -61,6 +61,7 @@ def test_zendesk_connector_basic(
             if doc.id == target_test_doc_id:
                 target_doc = doc
                 print(f"target_doc {target_doc}")
+
     assert len(all_docs) > 0, "No documents were retrieved from the connector"
     assert (
         target_doc is not None
