@@ -6,10 +6,9 @@ from onyx.configs.constants import DocumentSource
 # this is counted under `/auth/drive.readonly`
 GOOGLE_SCOPES = {
     DocumentSource.GOOGLE_DRIVE: [
-        "https://www.googleapis.com/auth/drive.readonly",
-        "https://www.googleapis.com/auth/drive.metadata.readonly",
-        "https://www.googleapis.com/auth/admin.directory.group.readonly",
-        "https://www.googleapis.com/auth/admin.directory.user.readonly",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/admin.directory.group",
+        "https://www.googleapis.com/auth/admin.directory.user",
     ],
     DocumentSource.GMAIL: [
         "https://www.googleapis.com/auth/gmail.readonly",
