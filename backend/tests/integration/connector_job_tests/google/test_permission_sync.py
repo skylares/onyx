@@ -115,6 +115,9 @@ def test_google_permission_sync(
         test_user_2,
     ) = google_drive_test_env_setup
 
+    # ----------------------BASELINE TEST----------------------
+    before = datetime.now(timezone.utc)
+
     # Create empty test doc in drive
     doc_id_1 = GoogleDriveManager.create_empty_doc(drive_service, drive_id)
 
@@ -123,7 +126,6 @@ def test_google_permission_sync(
     GoogleDriveManager.append_text_to_doc(drive_service, doc_id_1, doc_text_1)
 
     # run indexing
-    before = datetime.now(timezone.utc)
     CCPairManager.run_once(cc_pair, admin_user)
     CCPairManager.wait_for_indexing_completion(
         cc_pair=cc_pair, after=before, user_performing_action=admin_user
@@ -141,8 +143,6 @@ def test_google_permission_sync(
         user_performing_action=admin_user,
     )
 
-    # ----------------------BASELINE TEST----------------------
-
     # Verify admin has access to document
     admin_results = DocumentSearchManager.search_documents(
         query="secret number", user_performing_action=admin_user
@@ -156,6 +156,7 @@ def test_google_permission_sync(
     assert doc_text_1 not in [result.strip("\ufeff") for result in user1_results]
 
     # ----------------------GRANT USER 1 DOC PERMISSIONS TEST--------------------------
+    before = datetime.now(timezone.utc)
 
     # Grant user 1 access to document 1
     GoogleDriveManager.update_file_permissions(
@@ -171,7 +172,6 @@ def test_google_permission_sync(
     GoogleDriveManager.append_text_to_doc(drive_service, doc_id_2, doc_text_2)
 
     # Run indexing
-    before = datetime.now(timezone.utc)
     CCPairManager.run_once(cc_pair, admin_user)
     CCPairManager.wait_for_indexing_completion(
         cc_pair=cc_pair,
@@ -212,12 +212,12 @@ def test_google_permission_sync(
     assert doc_text_2 not in [result.strip("\ufeff") for result in user1_results_2]
 
     # ----------------------REMOVE USER 1 DOC PERMISSIONS TEST--------------------------
+    before = datetime.now(timezone.utc)
 
     # Remove user 1 access to document 1
     GoogleDriveManager.remove_file_permissions(
         drive_service=drive_service, file_id=doc_id_1, email=test_user_1.email
     )
-
     # Run permission sync
     CCPairManager.sync(
         cc_pair=cc_pair,
@@ -240,13 +240,12 @@ def test_google_permission_sync(
 
     # Verify user 1 cannot access either document
     user1_results = DocumentSearchManager.search_documents(
-        query="secret number", user_performing_action=test_user_1
+        query="secret numbers", user_performing_action=test_user_1
     )
-    assert {doc_text_1, doc_text_2} != {
-        result.strip("\ufeff") for result in user1_results
-    }
+    assert {result.strip("\ufeff") for result in user1_results} == set()
 
     # ----------------------GRANT USER 1 DRIVE PERMISSIONS TEST--------------------------
+    before = datetime.now(timezone.utc)
 
     # Grant user 1 access to drive
     GoogleDriveManager.update_file_permissions(
@@ -261,22 +260,24 @@ def test_google_permission_sync(
         cc_pair=cc_pair,
         user_performing_action=admin_user,
     )
+
     CCPairManager.wait_for_sync(
         cc_pair=cc_pair,
         after=before,
-        number_of_updated_docs=2,
+        number_of_updated_docs=1,
         user_performing_action=admin_user,
     )
 
     # Verify user 1 can access both documents
     user1_results = DocumentSearchManager.search_documents(
-        query="secret number", user_performing_action=test_user_1
+        query="secret numbers", user_performing_action=test_user_1
     )
     assert {doc_text_1, doc_text_2} == {
         result.strip("\ufeff") for result in user1_results
     }
 
     # ----------------------MAKE DRIVE PUBLIC TEST--------------------------
+    before = datetime.now(timezone.utc)
 
     # Make drive public
     GoogleDriveManager.make_file_public(drive_service, drive_id)

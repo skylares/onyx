@@ -3,10 +3,17 @@ from uuid import uuid4
 
 from google.oauth2.service_account import Credentials
 
-from onyx.configs.constants import DocumentSource
 from onyx.connectors.google_utils.resources import get_drive_service
 from onyx.connectors.google_utils.resources import get_google_docs_service
 from onyx.connectors.google_utils.shared_constants import GOOGLE_SCOPES
+
+# GOOGLE_SCOPES = {
+#     "google_drive": [
+#         "https://www.googleapis.com/auth/drive",
+#         "https://www.googleapis.com/auth/admin.directory.group",
+#         "https://www.googleapis.com/auth/admin.directory.user",
+#     ],
+# }
 
 
 class GoogleDriveManager:
@@ -17,7 +24,7 @@ class GoogleDriveManager:
         """Gets a drive service that impersonates a specific user"""
         credentials = Credentials.from_service_account_info(
             service_account_key,
-            scopes=GOOGLE_SCOPES[DocumentSource.GOOGLE_DRIVE],
+            scopes=GOOGLE_SCOPES["google_drive"],
             subject=impersonated_user_email,
         )
 
@@ -34,6 +41,9 @@ class GoogleDriveManager:
 
     @staticmethod
     def create_shared_drive(drive_service: Any, admin_email: str, test_id: str) -> str:
+        """
+        Creates a shared drive and returns the drive's ID
+        """
         try:
             about = drive_service.about().get(fields="user").execute()
             creating_user = about["user"]["emailAddress"]
@@ -67,6 +77,9 @@ class GoogleDriveManager:
         drive_service: Any,
         drive_id: str,
     ) -> str:
+        """
+        Creates an empty document in the given drive and returns the document's ID
+        """
         file_metadata = {
             "name": f"perm_sync_doc_{drive_id}_{str(uuid4())}",
             "mimeType": "application/vnd.google-apps.document",
@@ -112,9 +125,12 @@ class GoogleDriveManager:
             .list(fileId=file_id, supportsAllDrives=True)
             .execute()
         )
-
+        # TODO: This is a hacky way to remove permissions. Removes anyone with reader role.
+        # Need to find a way to map a user's email to a permission id.
+        # The permissions.get returns a permissionID but email field is None,
+        # something to do with it being a group or domain wide delegation.
         for permission in permissions.get("permissions", []):
-            if permission.get("emailAddress") == email:
+            if permission.get("role") == "reader":
                 drive_service.permissions().delete(
                     fileId=file_id,
                     permissionId=permission["id"],
@@ -147,7 +163,7 @@ class GoogleDriveManager:
                 .execute()
             )
 
-            for file in files.get("files", [])[:2]:
+            for file in files.get("files", []):
                 drive_service.files().delete(
                     fileId=file["id"], supportsAllDrives=True
                 ).execute()
