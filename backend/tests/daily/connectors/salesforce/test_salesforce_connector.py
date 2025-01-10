@@ -2,6 +2,7 @@ import json
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -10,7 +11,20 @@ from onyx.connectors.models import Document
 from onyx.connectors.salesforce.connector import SalesforceConnector
 
 
-def load_test_data(file_name: str = "test_salesforce_data.json") -> dict[str, dict]:
+def extract_key_value_pairs_to_set(
+    list_of_unparsed_key_value_strings: list[str],
+) -> set[str]:
+    set_of_key_value_pairs = set()
+    for string_key_value_pairs in list_of_unparsed_key_value_strings:
+        list_of_parsed_key_values = string_key_value_pairs.split("\n")
+        for key_value_pair in list_of_parsed_key_values:
+            set_of_key_value_pairs.add(key_value_pair.strip())
+    return set_of_key_value_pairs
+
+
+def load_test_data(
+    file_name: str = "test_salesforce_data.json",
+) -> dict[str, list[str] | dict[str, Any]]:
     current_dir = Path(__file__).parent
     with open(current_dir / file_name, "r") as f:
         return json.load(f)
@@ -51,17 +65,34 @@ def test_salesforce_connector_basic(salesforce_connector: SalesforceConnector) -
     assert len(all_docs) == 6
     assert target_test_doc is not None
 
-    # The order of the sections and of the content of the text fields is not deterministic,
-    # so we check the links are present and the text isn't empty
+    # Set of received links
     received_links: set[str] = set()
+    # List of received text fields, which contain key-value pairs seperated by newlines
+    recieved_text: list[str] = []
+
+    # Iterate over the sections of the target test doc to extract the links and text
     for section in target_test_doc.sections:
         assert section.link
         assert section.text
         received_links.add(section.link)
+        recieved_text.append(section.text)
 
+    # Check that the received links match the expected links from the test data json
     expected_links = set(test_data["expected_links"])
     assert received_links == expected_links
 
+    # Check that the received key-value pairs from the text fields match the expected key-value pairs from the test data json
+    expected_text = test_data["expected_text"]
+    if not isinstance(expected_text, list):
+        raise ValueError("Expected text is not a list")
+    unparsed_expected_key_value_pairs: list[str] = expected_text
+    received_key_value_pairs = extract_key_value_pairs_to_set(recieved_text)
+    expected_key_value_pairs = extract_key_value_pairs_to_set(
+        unparsed_expected_key_value_pairs
+    )
+    assert received_key_value_pairs == expected_key_value_pairs
+
+    # Check that the rest fields match the expected fields from the test data json
     assert target_test_doc.source == DocumentSource.SALESFORCE
     assert target_test_doc.semantic_identifier == test_data["semantic_identifier"]
     assert target_test_doc.metadata == test_data["metadata"]
