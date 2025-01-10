@@ -92,7 +92,7 @@ def test_salesforce_connector_basic(salesforce_connector: SalesforceConnector) -
     )
     assert received_key_value_pairs == expected_key_value_pairs
 
-    # Check that the rest fields match the expected fields from the test data json
+    # Check that the rest of the fields match the expected fields from the test data json
     assert target_test_doc.source == DocumentSource.SALESFORCE
     assert target_test_doc.semantic_identifier == test_data["semantic_identifier"]
     assert target_test_doc.metadata == test_data["metadata"]
