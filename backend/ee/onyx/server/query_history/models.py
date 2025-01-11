@@ -82,9 +82,6 @@ class ChatSessionMinimal(BaseModel):
 
     @classmethod
     def from_chat_session(cls, chat_session: ChatSession) -> "ChatSessionMinimal":
-        if not chat_session.messages:
-            return None
-
         first_user_message = next(
             (
                 message.message

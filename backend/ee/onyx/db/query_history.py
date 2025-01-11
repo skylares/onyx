@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime
 
 from sqlalchemy import asc
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import case
 from sqlalchemy.sql import func
 from sqlalchemy.sql import select
+from sqlalchemy.sql.expression import literal
 from sqlalchemy.sql.expression import UnaryExpression
 
 from onyx.configs.constants import QAFeedbackType
@@ -47,11 +49,17 @@ def _build_filter_conditions(
             .having(
                 case(
                     (
-                        feedback_filter == QAFeedbackType.LIKE,
+                        case(
+                            {literal(feedback_filter == QAFeedbackType.LIKE): True},
+                            else_=False,
+                        ),
                         func.bool_and(ChatMessageFeedback.is_positive),
                     ),
                     (
-                        feedback_filter == QAFeedbackType.DISLIKE,
+                        case(
+                            {literal(feedback_filter == QAFeedbackType.DISLIKE): True},
+                            else_=False,
+                        ),
                         func.bool_and(func.not_(ChatMessageFeedback.is_positive)),
                     ),
                     else_=func.bool_or(ChatMessageFeedback.is_positive)
@@ -86,7 +94,7 @@ def get_page_of_chat_sessions(
     page_num: int,
     page_size: int,
     feedback_filter: QAFeedbackType | None = None,
-) -> list[ChatSession]:
+) -> Sequence[ChatSession]:
     conditions = _build_filter_conditions(start_time, end_time, feedback_filter)
 
     subquery = (
