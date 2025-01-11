@@ -30,13 +30,14 @@ _FIREFLIES_API_QUERY = """
         transcripts(fromDate: $fromDate, toDate: $toDate, limit: $limit, skip: $skip) {
             id
             title
-            host_email
+            organizer_email
             participants
             date
             transcript_url
             sentences {
                 text
                 speaker_name
+                start_time
             }
         }
     }
@@ -44,12 +45,38 @@ _FIREFLIES_API_QUERY = """
 
 
 def _create_doc_from_transcript(transcript: dict) -> Document | None:
+    current_speaker_name = None
+    current_link = ""
+    current_text = ""
+
+    for sentence in transcript["sentences"]:
+        if current_speaker_name is None:
+            current_speaker_name = sentence.get("speaker_name") or "Unknown Speaker"
+        elif sentence["speaker_name"] != current_speaker_name:
+            print(f"link: {current_link}")
+            print(f"text: {current_text}")
+
+            current_speaker_name = sentence.get("speaker_name") or "Unknown Speaker"
+            current_link = f"{transcript['transcript_url']}?t={sentence['start_time']}"
+
+            current_text = f"{current_speaker_name}: "
+
+            current_text += f"{sentence['text']} "
+
+    print(transcript)
+    print(transcript.get("organizer_email"))
+    print(transcript.get("participants"))
     meeting_text = ""
     sentences = transcript.get("sentences", [])
     if sentences:
         for sentence in sentences:
             meeting_text += sentence.get("speaker_name") or "Unknown Speaker"
             meeting_text += ": " + sentence.get("text", "") + "\n\n"
+
+            meeting_time = sentence.get("start_time")
+            meeting_time_2 = sentence["start_time"]
+            print("meeting_time: ", meeting_time)
+            print("meeting_time_2: ", meeting_time_2)
     else:
         return None
 
@@ -62,12 +89,12 @@ def _create_doc_from_transcript(transcript: dict) -> Document | None:
     meeting_date_unix = transcript["date"]
     meeting_date = datetime.fromtimestamp(meeting_date_unix / 1000, tz=timezone.utc)
 
-    meeting_host_email = transcript["host_email"]
-    host_email_user_info = [BasicExpertInfo(email=meeting_host_email)]
+    meeting_organizer_email = transcript["organizer_email"]
+    organizer_email_user_info = [BasicExpertInfo(email=meeting_organizer_email)]
 
     meeting_participants_email_list = []
     for participant in transcript.get("participants", []):
-        if participant != meeting_host_email and participant:
+        if participant != meeting_organizer_email and participant:
             meeting_participants_email_list.append(BasicExpertInfo(email=participant))
 
     return Document(
@@ -82,7 +109,7 @@ def _create_doc_from_transcript(transcript: dict) -> Document | None:
         semantic_identifier=meeting_title,
         metadata={},
         doc_updated_at=meeting_date,
-        primary_owners=host_email_user_info,
+        primary_owners=organizer_email_user_info,
         secondary_owners=meeting_participants_email_list,
     )
 
