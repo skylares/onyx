@@ -45,42 +45,33 @@ _FIREFLIES_API_QUERY = """
 
 
 def _create_doc_from_transcript(transcript: dict) -> Document | None:
+    sections: List[Section] = []
     current_speaker_name = None
     current_link = ""
     current_text = ""
 
     for sentence in transcript["sentences"]:
-        if current_speaker_name is None:
-            current_speaker_name = sentence.get("speaker_name") or "Unknown Speaker"
-        elif sentence["speaker_name"] != current_speaker_name:
-            print(f"link: {current_link}")
-            print(f"text: {current_text}")
-
+        if sentence["speaker_name"] != current_speaker_name:
+            if current_speaker_name is not None:
+                sections.append(
+                    Section(
+                        link=current_link,
+                        text=current_text.strip(),
+                    )
+                )
             current_speaker_name = sentence.get("speaker_name") or "Unknown Speaker"
             current_link = f"{transcript['transcript_url']}?t={sentence['start_time']}"
-
             current_text = f"{current_speaker_name}: "
 
-            current_text += f"{sentence['text']} "
+        cleaned_text = sentence["text"].replace("\xa0", " ")
+        current_text += f"{cleaned_text} "
 
-    print(transcript)
-    print(transcript.get("organizer_email"))
-    print(transcript.get("participants"))
-    meeting_text = ""
-    sentences = transcript.get("sentences", [])
-    if sentences:
-        for sentence in sentences:
-            meeting_text += sentence.get("speaker_name") or "Unknown Speaker"
-            meeting_text += ": " + sentence.get("text", "") + "\n\n"
-
-            meeting_time = sentence.get("start_time")
-            meeting_time_2 = sentence["start_time"]
-            print("meeting_time: ", meeting_time)
-            print("meeting_time_2: ", meeting_time_2)
-    else:
-        return None
-
-    meeting_link = transcript["transcript_url"]
+    sections.append(
+        Section(
+            link=current_link,
+            text=current_text.strip(),
+        )
+    )
 
     fireflies_id = _FIREFLIES_ID_PREFIX + transcript["id"]
 
@@ -99,12 +90,7 @@ def _create_doc_from_transcript(transcript: dict) -> Document | None:
 
     return Document(
         id=fireflies_id,
-        sections=[
-            Section(
-                link=meeting_link,
-                text=meeting_text,
-            )
-        ],
+        sections=sections,
         source=DocumentSource.FIREFLIES,
         semantic_identifier=meeting_title,
         metadata={},
