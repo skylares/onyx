@@ -66,6 +66,7 @@ def _create_doc_from_transcript(transcript: dict) -> Document | None:
         cleaned_text = sentence["text"].replace("\xa0", " ")
         current_text += f"{cleaned_text} "
 
+    # Sometimes these links (links with a timestamp) do not work, it is a bug with Fireflies.
     sections.append(
         Section(
             link=current_link,
