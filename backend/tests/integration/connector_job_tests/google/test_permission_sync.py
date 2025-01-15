@@ -6,9 +6,9 @@ from datetime import timezone
 from uuid import uuid4
 
 import pytest
-from googleapiclient.discovery import Resource
 
 from onyx.configs.constants import DocumentSource
+from onyx.connectors.google_utils.resources import GoogleDriveService
 from onyx.connectors.google_utils.shared_constants import (
     DB_CREDENTIALS_DICT_SERVICE_ACCOUNT_KEY,
 )
@@ -38,7 +38,9 @@ from tests.integration.connector_job_tests.google.google_drive_api_utils import 
 @pytest.fixture()
 def google_drive_test_env_setup() -> (
     Generator[
-        tuple[Resource, str, DATestCCPair, DATestUser, DATestUser, DATestUser],
+        tuple[
+            GoogleDriveService, str, DATestCCPair, DATestUser, DATestUser, DATestUser
+        ],
         None,
         None,
     ]
@@ -72,7 +74,7 @@ def google_drive_test_env_setup() -> (
 
         before = datetime.now(timezone.utc)
         credential: DATestCredential = CredentialManager.create(
-            source=DocumentSource.GOOGLE_DRIVE.value,
+            source=DocumentSource.GOOGLE_DRIVE,  # Removed the .value for mypy, ensure this still works properly
             credential_json=credentials,
             user_performing_action=admin_user,
         )
@@ -110,7 +112,7 @@ def test_google_permission_sync(
     reset: None,
     vespa_client: vespa_fixture,
     google_drive_test_env_setup: tuple[
-        Resource, str, DATestCCPair, DATestUser, DATestUser, DATestUser
+        GoogleDriveService, str, DATestCCPair, DATestUser, DATestUser, DATestUser
     ],
 ) -> None:
     (
