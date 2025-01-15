@@ -5,25 +5,33 @@ from google.oauth2.service_account import Credentials
 
 from onyx.connectors.google_utils.resources import get_drive_service
 from onyx.connectors.google_utils.resources import get_google_docs_service
+from onyx.connectors.google_utils.resources import GoogleDocsService
+from onyx.connectors.google_utils.resources import GoogleDriveService
 
-GOOGLE_SCOPES = {
-    "google_drive": [
-        "https://www.googleapis.com/auth/drive",
-        "https://www.googleapis.com/auth/admin.directory.group",
-        "https://www.googleapis.com/auth/admin.directory.user",
-    ],
-}
+GOOGLE_SCOPES = [
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/admin.directory.group",
+    "https://www.googleapis.com/auth/admin.directory.user",
+]
+
+
+def _create_doc_service(drive_service: GoogleDriveService) -> GoogleDocsService:
+    docs_service = get_google_docs_service(
+        creds=drive_service._http.credentials,
+        user_email=drive_service._http.credentials._subject,
+    )
+    return docs_service
 
 
 class GoogleDriveManager:
     @staticmethod
     def create_impersonated_drive_service(
         service_account_key: dict, impersonated_user_email: str
-    ) -> Any:
+    ) -> GoogleDriveService:
         """Gets a drive service that impersonates a specific user"""
         credentials = Credentials.from_service_account_info(
             service_account_key,
-            scopes=GOOGLE_SCOPES["google_drive"],
+            scopes=GOOGLE_SCOPES,
             subject=impersonated_user_email,
         )
 
@@ -39,7 +47,9 @@ class GoogleDriveManager:
         return service
 
     @staticmethod
-    def create_shared_drive(drive_service: Any, admin_email: str, test_id: str) -> str:
+    def create_shared_drive(
+        drive_service: GoogleDriveService, admin_email: str, test_id: str
+    ) -> str:
         """
         Creates a shared drive and returns the drive's ID
         """
@@ -93,11 +103,11 @@ class GoogleDriveManager:
         return file["id"]
 
     @staticmethod
-    def append_text_to_doc(drive_service: Any, doc_id: str, text: str) -> None:
-        docs_service = get_google_docs_service(
-            creds=drive_service._http.credentials,
-            user_email=drive_service._http.credentials._subject,
-        )
+    def append_text_to_doc(
+        drive_service: GoogleDriveService, doc_id: str, text: str
+    ) -> None:
+        docs_service = _create_doc_service(drive_service)
+
         docs_service.documents().batchUpdate(
             documentId=doc_id,
             body={
