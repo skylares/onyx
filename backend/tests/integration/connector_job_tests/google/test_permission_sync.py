@@ -1,5 +1,6 @@
 import json
 import os
+from collections.abc import Generator
 from datetime import datetime
 from datetime import timezone
 from uuid import uuid4
@@ -35,7 +36,13 @@ from tests.integration.connector_job_tests.google.google_drive_api_utils import 
 
 
 @pytest.fixture()
-def google_drive_test_env_setup():
+def google_drive_test_env_setup() -> (
+    Generator[
+        tuple[Resource, str, DATestCCPair, DATestUser, DATestUser, DATestUser],
+        None,
+        None,
+    ]
+):
     # Creating an admin user (first user created is automatically an admin)
     admin_user: DATestUser = UserManager.create(email="admin@onyx-test.com")
     # Creating a non-admin user
@@ -266,6 +273,9 @@ def test_google_permission_sync(
         after=before,
         number_of_updated_docs=1,
         user_performing_action=admin_user,
+        # if we are only updating the group definition for this test we use this varaiable,
+        # since it doesn't result in a vespa sync so we don't want to wait for it
+        should_wait_for_vespa_sync=False,
     )
 
     # Verify user 1 can access both documents
@@ -279,8 +289,9 @@ def test_google_permission_sync(
     # ----------------------MAKE DRIVE PUBLIC TEST--------------------------
     before = datetime.now(timezone.utc)
 
-    # Make drive public
-    GoogleDriveManager.make_file_public(drive_service, drive_id)
+    # Unable to make drive itself public as Google's security policies prevent this, so we make the documents public instead
+    GoogleDriveManager.make_file_public(drive_service, doc_id_1)
+    GoogleDriveManager.make_file_public(drive_service, doc_id_2)
 
     # Run permission sync
     CCPairManager.sync(

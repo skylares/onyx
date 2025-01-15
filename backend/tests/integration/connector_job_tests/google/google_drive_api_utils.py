@@ -5,15 +5,14 @@ from google.oauth2.service_account import Credentials
 
 from onyx.connectors.google_utils.resources import get_drive_service
 from onyx.connectors.google_utils.resources import get_google_docs_service
-from onyx.connectors.google_utils.shared_constants import GOOGLE_SCOPES
 
-# GOOGLE_SCOPES = {
-#     "google_drive": [
-#         "https://www.googleapis.com/auth/drive",
-#         "https://www.googleapis.com/auth/admin.directory.group",
-#         "https://www.googleapis.com/auth/admin.directory.user",
-#     ],
-# }
+GOOGLE_SCOPES = {
+    "google_drive": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/admin.directory.group",
+        "https://www.googleapis.com/auth/admin.directory.user",
+    ],
+}
 
 
 class GoogleDriveManager:
