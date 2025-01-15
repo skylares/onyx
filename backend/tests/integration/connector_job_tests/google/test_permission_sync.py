@@ -52,7 +52,9 @@ def google_drive_test_env_setup() -> (
     # Creating a non-admin user
     test_user_2: DATestUser = UserManager.create(email="test_user_2@onyx-test.com")
 
-    service_account_key = os.environ["GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_JSON"]
+    service_account_key = os.environ["FULL_CONTROL_DRIVE_SERVICE_ACCOUNT"]
+    print(service_account_key)
+    drive_id: str | None = None
 
     try:
         credentials = {
@@ -101,7 +103,7 @@ def google_drive_test_env_setup() -> (
         yield drive_service, drive_id, cc_pair, admin_user, test_user_1, test_user_2
 
     except json.JSONDecodeError:
-        pytest.skip("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_JSON is not valid JSON")
+        pytest.skip("FULL_CONTROL_DRIVE_SERVICE_ACCOUNT is not valid JSON")
     finally:
         # Cleanup drive and file
         if drive_id is not None:
