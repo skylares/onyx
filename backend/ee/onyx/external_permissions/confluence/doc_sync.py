@@ -24,7 +24,9 @@ _REQUEST_PAGINATION_LIMIT = 5000
 def _get_server_space_permissions(
     confluence_client: OnyxConfluence, space_key: str
 ) -> ExternalAccess:
-    space_permissions = confluence_client.get_space_permissions(space_key=space_key)
+    space_permissions = confluence_client.get_all_space_permissions_server(
+        space_key=space_key
+    )
 
     viewspace_permissions = []
     for permission_category in space_permissions:
@@ -66,6 +68,13 @@ def _get_server_space_permissions(
             user_emails.add(user_email)
         else:
             logger.warning(f"Email for user {user_name} not found in Confluence")
+
+    if not user_emails and not group_names:
+        logger.warning(
+            "No user emails or group names found in Confluence space permissions"
+            f"\nSpace key: {space_key}"
+            f"\nSpace permissions: {space_permissions}"
+        )
 
     return ExternalAccess(
         external_user_emails=user_emails,

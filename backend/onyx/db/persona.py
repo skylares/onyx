@@ -17,6 +17,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Session
 
 from onyx.auth.schemas import UserRole
+from onyx.configs.app_configs import DISABLE_AUTH
 from onyx.configs.chat_configs import BING_API_KEY
 from onyx.configs.chat_configs import CONTEXT_CHUNKS_ABOVE
 from onyx.configs.chat_configs import CONTEXT_CHUNKS_BELOW
@@ -27,7 +28,7 @@ from onyx.db.models import DocumentSet
 from onyx.db.models import Persona
 from onyx.db.models import Persona__User
 from onyx.db.models import Persona__UserGroup
-from onyx.db.models import PersonaCategory
+from onyx.db.models import PersonaLabel
 from onyx.db.models import Prompt
 from onyx.db.models import StarterMessage
 from onyx.db.models import Tool
@@ -45,10 +46,11 @@ logger = setup_logger()
 def _add_user_filters(
     stmt: Select, user: User | None, get_editable: bool = True
 ) -> Select:
-    # If user is None, assume the user is an admin or auth is disabled
-    if user is None or user.role == UserRole.ADMIN:
+    # If user is None and auth is disabled, assume the user is an admin
+    if (user is None and DISABLE_AUTH) or (user and user.role == UserRole.ADMIN):
         return stmt
 
+    stmt = stmt.distinct()
     Persona__UG = aliased(Persona__UserGroup)
     User__UG = aliased(User__UserGroup)
     """
@@ -77,6 +79,12 @@ def _add_user_filters(
     for (as well as public Personas)
     - if we are not editing, we return all Personas directly connected to the user
     """
+
+    # If user is None, this is an anonymous user and we should only show public Personas
+    if user is None:
+        where_clause = Persona.is_public == True  # noqa: E712
+        return stmt.where(where_clause)
+
     where_clause = User__UserGroup.user_id == user.id
     if user.role == UserRole.CURATOR and get_editable:
         where_clause &= User__UserGroup.is_curator == True  # noqa: E712
@@ -102,7 +110,7 @@ def _add_user_filters(
 # fetch_persona_by_id is used to fetch a persona by its ID. It is used to fetch a persona by its ID.
 
 
-def fetch_persona_by_id(
+def fetch_persona_by_id_for_user(
     db_session: Session, persona_id: int, user: User | None, get_editable: bool = True
 ) -> Persona:
     stmt = select(Persona).where(Persona.id == persona_id).distinct()
@@ -221,7 +229,7 @@ def update_persona_shared_users(
     """Simplified version of `create_update_persona` which only touches the
     accessibility rather than any of the logic (e.g. prompt, connected data sources,
     etc.)."""
-    persona = fetch_persona_by_id(
+    persona = fetch_persona_by_id_for_user(
         db_session=db_session, persona_id=persona_id, user=user, get_editable=True
     )
 
@@ -247,7 +255,7 @@ def update_persona_public_status(
     db_session: Session,
     user: User | None,
 ) -> None:
-    persona = fetch_persona_by_id(
+    persona = fetch_persona_by_id_for_user(
         db_session=db_session, persona_id=persona_id, user=user, get_editable=True
     )
     if user and user.role != UserRole.ADMIN and persona.user_id != user.id:
@@ -275,7 +283,7 @@ def get_prompts(
     return db_session.scalars(stmt).all()
 
 
-def get_personas(
+def get_personas_for_user(
     # if user is `None` assume the user is an admin or auth is disabled
     user: User | None,
     db_session: Session,
@@ -303,6 +311,13 @@ def get_personas(
             joinedload(Persona.users),
         )
 
+    return db_session.execute(stmt).unique().scalars().all()
+
+
+def get_personas(db_session: Session) -> Sequence[Persona]:
+    stmt = select(Persona).distinct()
+    stmt = stmt.where(not_(Persona.name.startswith(SLACK_BOT_PERSONA_PREFIX)))
+    stmt = stmt.where(Persona.deleted.is_(False))
     return db_session.execute(stmt).unique().scalars().all()
 
 
@@ -349,7 +364,7 @@ def update_all_personas_display_priority(
     db_session: Session,
 ) -> None:
     """Updates the display priority of all lives Personas"""
-    personas = get_personas(user=None, db_session=db_session)
+    personas = get_personas(db_session=db_session)
     available_persona_ids = {persona.id for persona in personas}
     if available_persona_ids != set(display_priority_map.keys()):
         raise ValueError("Invalid persona IDs provided")
@@ -445,7 +460,7 @@ def upsert_persona(
     search_start_date: datetime | None = None,
     builtin_persona: bool = False,
     is_default_persona: bool = False,
-    category_id: int | None = None,
+    label_ids: list[int] | None = None,
     chunks_above: int = CONTEXT_CHUNKS_ABOVE,
     chunks_below: int = CONTEXT_CHUNKS_BELOW,
 ) -> Persona:
@@ -491,6 +506,12 @@ def upsert_persona(
             f"specified. Specified IDs were: '{prompt_ids}'"
         )
 
+    labels = None
+    if label_ids is not None:
+        labels = (
+            db_session.query(PersonaLabel).filter(PersonaLabel.id.in_(label_ids)).all()
+        )
+
     # ensure all specified tools are valid
     if tools:
         validate_persona_tools(tools)
@@ -503,7 +524,7 @@ def upsert_persona(
 
         # this checks if the user has permission to edit the persona
         # will raise an Exception if the user does not have permission
-        existing_persona = fetch_persona_by_id(
+        existing_persona = fetch_persona_by_id_for_user(
             db_session=db_session,
             persona_id=existing_persona.id,
             user=user,
@@ -532,7 +553,7 @@ def upsert_persona(
             existing_persona.uploaded_image_id = uploaded_image_id
         existing_persona.is_visible = is_visible
         existing_persona.search_start_date = search_start_date
-        existing_persona.category_id = category_id
+        existing_persona.labels = labels or []
         # Do not delete any associations manually added unless
         # a new updated list is provided
         if document_sets is not None:
@@ -585,7 +606,7 @@ def upsert_persona(
             is_visible=is_visible,
             search_start_date=search_start_date,
             is_default_persona=is_default_persona,
-            category_id=category_id,
+            labels=labels or [],
         )
         db_session.add(new_persona)
         persona = new_persona
@@ -629,7 +650,7 @@ def update_persona_visibility(
     db_session: Session,
     user: User | None = None,
 ) -> None:
-    persona = fetch_persona_by_id(
+    persona = fetch_persona_by_id_for_user(
         db_session=db_session, persona_id=persona_id, user=user, get_editable=True
     )
 
@@ -806,37 +827,31 @@ def delete_persona_by_name(
     db_session.commit()
 
 
-def get_assistant_categories(db_session: Session) -> list[PersonaCategory]:
-    return db_session.query(PersonaCategory).all()
+def get_assistant_labels(db_session: Session) -> list[PersonaLabel]:
+    return db_session.query(PersonaLabel).all()
 
 
-def create_assistant_category(
-    db_session: Session, name: str, description: str
-) -> PersonaCategory:
-    category = PersonaCategory(name=name, description=description)
-    db_session.add(category)
+def create_assistant_label(db_session: Session, name: str) -> PersonaLabel:
+    label = PersonaLabel(name=name)
+    db_session.add(label)
     db_session.commit()
-    return category
+    return label
 
 
-def update_persona_category(
-    category_id: int,
-    category_description: str,
-    category_name: str,
+def update_persona_label(
+    label_id: int,
+    label_name: str,
     db_session: Session,
 ) -> None:
-    persona_category = (
-        db_session.query(PersonaCategory)
-        .filter(PersonaCategory.id == category_id)
-        .one_or_none()
+    persona_label = (
+        db_session.query(PersonaLabel).filter(PersonaLabel.id == label_id).one_or_none()
     )
-    if persona_category is None:
-        raise ValueError(f"Persona category with ID {category_id} does not exist")
-    persona_category.description = category_description
-    persona_category.name = category_name
+    if persona_label is None:
+        raise ValueError(f"Persona label with ID {label_id} does not exist")
+    persona_label.name = label_name
     db_session.commit()
 
 
-def delete_persona_category(category_id: int, db_session: Session) -> None:
-    db_session.query(PersonaCategory).filter(PersonaCategory.id == category_id).delete()
+def delete_persona_label(label_id: int, db_session: Session) -> None:
+    db_session.query(PersonaLabel).filter(PersonaLabel.id == label_id).delete()
     db_session.commit()

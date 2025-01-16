@@ -30,6 +30,7 @@ from onyx.auth.users import fastapi_users
 from onyx.configs.app_configs import APP_API_PREFIX
 from onyx.configs.app_configs import APP_HOST
 from onyx.configs.app_configs import APP_PORT
+from onyx.configs.app_configs import AUTH_RATE_LIMITING_ENABLED
 from onyx.configs.app_configs import AUTH_TYPE
 from onyx.configs.app_configs import DISABLE_GENERATIVE_AI
 from onyx.configs.app_configs import LOG_ENDPOINT_LATENCY
@@ -54,6 +55,12 @@ from onyx.server.documents.indexing import router as indexing_router
 from onyx.server.documents.standard_oauth import router as oauth_router
 from onyx.server.features.document_set.api import router as document_set_router
 from onyx.server.features.folder.api import router as folder_router
+from onyx.server.features.input_prompt.api import (
+    admin_router as admin_input_prompt_router,
+)
+from onyx.server.features.input_prompt.api import (
+    basic_router as input_prompt_router,
+)
 from onyx.server.features.notifications.api import router as notification_router
 from onyx.server.features.persona.api import admin_router as admin_persona_router
 from onyx.server.features.persona.api import basic_router as persona_router
@@ -74,9 +81,9 @@ from onyx.server.manage.search_settings import router as search_settings_router
 from onyx.server.manage.slack_bot import router as slack_bot_management_router
 from onyx.server.manage.users import router as user_router
 from onyx.server.middleware.latency_logging import add_latency_logging_middleware
-from onyx.server.middleware.rate_limiting import close_limiter
+from onyx.server.middleware.rate_limiting import close_auth_limiter
 from onyx.server.middleware.rate_limiting import get_auth_rate_limiters
-from onyx.server.middleware.rate_limiting import setup_limiter
+from onyx.server.middleware.rate_limiting import setup_auth_limiter
 from onyx.server.onyx_api.ingestion import router as onyx_api_router
 from onyx.server.openai_assistants_api.full_openai_assistants_api import (
     get_full_openai_assistants_api_router,
@@ -174,7 +181,7 @@ def include_auth_router_with_prefix(
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Set recursion limit
     if SYSTEM_RECURSION_LIMIT is not None:
         sys.setrecursionlimit(SYSTEM_RECURSION_LIMIT)
@@ -214,15 +221,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     else:
         setup_multitenant_onyx()
 
-    optional_telemetry(record_type=RecordType.VERSION, data={"version": __version__})
+    if not MULTI_TENANT:
+        # don't emit a metric for every pod rollover/restart
+        optional_telemetry(
+            record_type=RecordType.VERSION, data={"version": __version__}
+        )
 
-    # Set up rate limiter
-    await setup_limiter()
+    if AUTH_RATE_LIMITING_ENABLED:
+        await setup_auth_limiter()
 
     yield
 
-    # Close rate limiter
-    await close_limiter()
+    if AUTH_RATE_LIMITING_ENABLED:
+        await close_auth_limiter()
 
 
 def log_http_error(_: Request, exc: Exception) -> JSONResponse:
@@ -273,6 +284,8 @@ def get_application() -> FastAPI:
     include_router_with_global_prefix_prepended(application, connector_router)
     include_router_with_global_prefix_prepended(application, user_router)
     include_router_with_global_prefix_prepended(application, credential_router)
+    include_router_with_global_prefix_prepended(application, input_prompt_router)
+    include_router_with_global_prefix_prepended(application, admin_input_prompt_router)
     include_router_with_global_prefix_prepended(application, cc_pair_router)
     include_router_with_global_prefix_prepended(application, folder_router)
     include_router_with_global_prefix_prepended(application, document_set_router)
