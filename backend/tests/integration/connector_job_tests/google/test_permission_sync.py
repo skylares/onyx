@@ -53,7 +53,6 @@ def google_drive_test_env_setup() -> (
     test_user_2: DATestUser = UserManager.create(email="test_user_2@onyx-test.com")
 
     service_account_key = os.environ["FULL_CONTROL_DRIVE_SERVICE_ACCOUNT"]
-    print(service_account_key)
     drive_id: str | None = None
 
     try:
@@ -275,7 +274,7 @@ def test_google_permission_sync(
     CCPairManager.wait_for_sync(
         cc_pair=cc_pair,
         after=before,
-        number_of_updated_docs=1,
+        number_of_updated_docs=2,
         user_performing_action=admin_user,
         # if we are only updating the group definition for this test we use this varaiable,
         # since it doesn't result in a vespa sync so we don't want to wait for it
