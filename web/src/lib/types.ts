@@ -7,7 +7,7 @@ interface UserPreferences {
   chosen_assistants: number[] | null;
   visible_assistants: number[];
   hidden_assistants: number[];
-  pinned_assistants: number[];
+  pinned_assistants?: number[];
   default_model: string | null;
   recent_assistants: number[];
   auto_scroll: boolean | null;
@@ -98,7 +98,7 @@ export type ValidStatuses =
   | "in_progress"
   | "not_started";
 export type TaskStatus = "PENDING" | "STARTED" | "SUCCESS" | "FAILURE";
-export type Feedback = "like" | "dislike";
+export type Feedback = "like" | "dislike" | "mixed";
 export type AccessType = "public" | "private" | "sync";
 export type SessionType = "Chat" | "Search" | "Slack";
 
