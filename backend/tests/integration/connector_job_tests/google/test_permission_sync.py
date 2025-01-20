@@ -75,7 +75,7 @@ def google_drive_test_env_setup() -> (
 
         before = datetime.now(timezone.utc)
         credential: DATestCredential = CredentialManager.create(
-            source=DocumentSource.GOOGLE_DRIVE,  # Removed the .value for mypy, ensure this still works properly
+            source=DocumentSource.GOOGLE_DRIVE,
             credential_json=credentials,
             user_performing_action=admin_user,
         )

@@ -7,15 +7,17 @@ from onyx.connectors.google_utils.resources import get_drive_service
 from onyx.connectors.google_utils.resources import get_google_docs_service
 from onyx.connectors.google_utils.resources import GoogleDocsService
 from onyx.connectors.google_utils.resources import GoogleDriveService
-from onyx.connectors.google_utils.shared_constants import GOOGLE_SCOPES
 
-# GOOGLE_SCOPES = {
-#     DocumentSource.GOOGLE_DRIVE: [
-#         "https://www.googleapis.com/auth/drive",
-#         "https://www.googleapis.com/auth/admin.directory.group",
-#         "https://www.googleapis.com/auth/admin.directory.user",
-#     ],
-# }
+# from onyx.configs.constants import DocumentSource
+# from onyx.connectors.google_utils.shared_constants import GOOGLE_SCOPES
+
+GOOGLE_SCOPES = {
+    "google_drive": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/admin.directory.group",
+        "https://www.googleapis.com/auth/admin.directory.user",
+    ],
+}
 
 
 def _create_doc_service(drive_service: GoogleDriveService) -> GoogleDocsService:

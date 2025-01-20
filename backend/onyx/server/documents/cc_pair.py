@@ -452,7 +452,7 @@ def get_cc_pair_latest_group_sync(
     user: User = Depends(current_curator_or_admin_user),
     db_session: Session = Depends(get_session),
 ) -> datetime | None:
-    cc_pair = get_connector_credential_pair_from_id(
+    cc_pair = get_connector_credential_pair_from_id_for_user(
         cc_pair_id=cc_pair_id,
         db_session=db_session,
         user=user,
@@ -476,7 +476,7 @@ def sync_cc_pair_groups(
 ) -> StatusResponse[list[int]]:
     """Triggers group sync on a particular cc_pair immediately"""
 
-    cc_pair = get_connector_credential_pair_from_id(
+    cc_pair = get_connector_credential_pair_from_id_for_user(
         cc_pair_id=cc_pair_id,
         db_session=db_session,
         user=user,
