@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from onyx.db.models import DiscordBot
 from onyx.db.models import SlackBot
 
 
@@ -74,3 +75,7 @@ def remove_slack_bot(
 
 def fetch_slack_bots(db_session: Session) -> Sequence[SlackBot]:
     return db_session.scalars(select(SlackBot)).all()
+
+
+def fetch_discord_bots(db_session: Session) -> Sequence[DiscordBot]:
+    return db_session.scalars(select(DiscordBot)).all()

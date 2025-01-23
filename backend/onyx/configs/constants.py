@@ -291,6 +291,9 @@ class OnyxRedisLocks:
     SLACK_BOT_HEARTBEAT_PREFIX = "da_heartbeat:slack_bot"
     ANONYMOUS_USER_ENABLED = "anonymous_user_enabled"
 
+    DISCORD_BOT_LOCK = "da_lock:discord_bot"
+    DISCORD_BOT_HEARTBEAT_PREFIX = "da_heartbeat:discord_bot"
+
 
 class OnyxRedisSignals:
     VALIDATE_INDEXING_FENCES = "signal:validate_indexing_fences"
