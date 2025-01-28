@@ -8,8 +8,6 @@ from onyx.connectors.google_utils.resources import get_google_docs_service
 from onyx.connectors.google_utils.resources import GoogleDocsService
 from onyx.connectors.google_utils.resources import GoogleDriveService
 
-# from onyx.configs.constants import DocumentSource
-# from onyx.connectors.google_utils.shared_constants import GOOGLE_SCOPES
 
 GOOGLE_SCOPES = {
     "google_drive": [
