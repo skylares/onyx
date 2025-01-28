@@ -61,10 +61,10 @@ import { debounce } from "lodash";
 import { FullLLMProvider } from "../configuration/llm/interfaces";
 import StarterMessagesList from "./StarterMessageList";
 
-import { Switch } from "@/components/ui/switch";
+import { Switch, SwitchField } from "@/components/ui/switch";
 import { generateIdenticon } from "@/components/assistants/AssistantIcon";
 import { BackButton } from "@/components/BackButton";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox, CheckboxField } from "@/components/ui/checkbox";
 import { AdvancedOptionsToggle } from "@/components/AdvancedOptionsToggle";
 import { MinimalUserSnapshot } from "@/lib/types";
 import { useUserGroups } from "@/lib/hooks";
@@ -144,8 +144,6 @@ export function AssistantEditor({
     "#6FFFFF",
   ];
 
-  const [showSearchTool, setShowSearchTool] = useState(false);
-
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // state to persist across formik reformatting
@@ -223,6 +221,7 @@ export function AssistantEditor({
   const initialValues = {
     name: existingPersona?.name ?? "",
     description: existingPersona?.description ?? "",
+    datetime_aware: existingPrompt?.datetime_aware ?? false,
     system_prompt: existingPrompt?.system_prompt ?? "",
     task_prompt: existingPrompt?.task_prompt ?? "",
     is_public: existingPersona?.is_public ?? defaultPublic,
@@ -445,26 +444,10 @@ export function AssistantEditor({
           let enabledTools = Object.keys(values.enabled_tools_map)
             .map((toolId) => Number(toolId))
             .filter((toolId) => values.enabled_tools_map[toolId]);
+
           const searchToolEnabled = searchTool
             ? enabledTools.includes(searchTool.id)
             : false;
-          const imageGenerationToolEnabled = imageGenerationTool
-            ? enabledTools.includes(imageGenerationTool.id)
-            : false;
-
-          if (imageGenerationToolEnabled) {
-            if (
-              // model must support image input for image generation
-              // to work
-              !checkLLMSupportsImageInput(
-                values.llm_model_version_override || defaultModelName || ""
-              )
-            ) {
-              enabledTools = enabledTools.filter(
-                (toolId) => toolId !== imageGenerationTool!.id
-              );
-            }
-          }
 
           // if disable_retrieval is set, set num_chunks to 0
           // to tell the backend to not fetch any documents
@@ -786,15 +769,9 @@ export function AssistantEditor({
                                           : ""
                                       }`}
                                     >
-                                      <Switch
-                                        checked={
-                                          values.enabled_tools_map[
-                                            searchTool.id
-                                          ]
-                                        }
+                                      <SwitchField
                                         size="sm"
                                         onCheckedChange={(checked) => {
-                                          setShowSearchTool(checked);
                                           setFieldValue("num_chunks", null);
                                           toggleToolInValues(searchTool.id);
                                         }}
@@ -828,7 +805,7 @@ export function AssistantEditor({
                   )}
                   {ccPairs.length > 0 &&
                     searchTool &&
-                    showSearchTool &&
+                    values.enabled_tools_map[searchTool.id] &&
                     !(user?.role != "admin" && documentSets.length === 0) && (
                       <CollapsibleSection>
                         <div className="mt-2">
@@ -913,105 +890,42 @@ export function AssistantEditor({
                     {imageGenerationTool && (
                       <>
                         <div className="flex items-center content-start mb-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Checkbox
-                                  size="sm"
-                                  id={`enabled_tools_map.${imageGenerationTool.id}`}
-                                  checked={
-                                    values.enabled_tools_map[
-                                      imageGenerationTool.id
-                                    ]
-                                  }
-                                  onCheckedChange={() => {
-                                    if (
-                                      currentLLMSupportsImageOutput &&
-                                      isImageGenerationAvailable
-                                    ) {
-                                      toggleToolInValues(
-                                        imageGenerationTool.id
-                                      );
-                                    }
-                                  }}
-                                  className={
-                                    !currentLLMSupportsImageOutput ||
-                                    !isImageGenerationAvailable
-                                      ? "opacity-50 cursor-not-allowed"
-                                      : ""
-                                  }
-                                />
-                              </TooltipTrigger>
-                              {(!currentLLMSupportsImageOutput ||
-                                !isImageGenerationAvailable) && (
-                                <TooltipContent side="top" align="center">
-                                  <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
-                                    {!currentLLMSupportsImageOutput
-                                      ? "To use Image Generation, select GPT-4 or another image compatible model as the default model for this Assistant."
-                                      : "Image Generation requires an OpenAI or Azure Dalle configuration."}
-                                  </p>
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                          <div className="flex flex-col ml-2">
-                            <span className="text-sm">
-                              {imageGenerationTool.display_name}
-                            </span>
-                            <span className="text-xs text-subtle">
-                              Generate and manipulate images using AI-powered
-                              tools
-                            </span>
-                          </div>
+                          <BooleanFormField
+                            name={`enabled_tools_map.${imageGenerationTool.id}`}
+                            label={imageGenerationTool.display_name}
+                            subtext="Generate and manipulate images using AI-powered tools"
+                            disabled={
+                              !currentLLMSupportsImageOutput ||
+                              !isImageGenerationAvailable
+                            }
+                            disabledTooltip={
+                              !currentLLMSupportsImageOutput
+                                ? "To use Image Generation, select GPT-4 or another image compatible model as the default model for this Assistant."
+                                : "Image Generation requires an OpenAI or Azure Dall-E configuration."
+                            }
+                          />
                         </div>
                       </>
                     )}
 
                     {internetSearchTool && (
                       <>
-                        <div className="flex items-center content-start mb-2">
-                          <Checkbox
-                            size="sm"
-                            id={`enabled_tools_map.${internetSearchTool.id}`}
-                            checked={
-                              values.enabled_tools_map[internetSearchTool.id]
-                            }
-                            onCheckedChange={() => {
-                              toggleToolInValues(internetSearchTool.id);
-                            }}
-                          />
-                          <div className="flex flex-col ml-2">
-                            <span className="text-sm">
-                              {internetSearchTool.display_name}
-                            </span>
-                            <span className="text-xs text-subtle">
-                              Access real-time information and search the web
-                              for up-to-date results
-                            </span>
-                          </div>
-                        </div>
+                        <BooleanFormField
+                          name={`enabled_tools_map.${internetSearchTool.id}`}
+                          label={internetSearchTool.display_name}
+                          subtext="Access real-time information and search the web for up-to-date results"
+                        />
                       </>
                     )}
 
                     {customTools.length > 0 &&
                       customTools.map((tool) => (
-                        <React.Fragment key={tool.id}>
-                          <div className="flex items-center content-start mb-2">
-                            <Checkbox
-                              size="sm"
-                              id={`enabled_tools_map.${tool.id}`}
-                              checked={values.enabled_tools_map[tool.id]}
-                              onCheckedChange={() => {
-                                toggleToolInValues(tool.id);
-                              }}
-                            />
-                            <div className="ml-2">
-                              <span className="text-sm">
-                                {tool.display_name}
-                              </span>
-                            </div>
-                          </div>
-                        </React.Fragment>
+                        <BooleanFormField
+                          key={tool.id}
+                          name={`enabled_tools_map.${tool.id}`}
+                          label={tool.display_name}
+                          subtext={tool.description}
+                        />
                       ))}
                   </div>
                 </div>
@@ -1071,9 +985,9 @@ export function AssistantEditor({
 
                     <div className="min-h-[100px]">
                       <div className="flex items-center mb-2">
-                        <Switch
+                        <SwitchField
+                          name="is_public"
                           size="md"
-                          checked={values.is_public}
                           onCheckedChange={(checked) => {
                             setFieldValue("is_public", checked);
                             if (checked) {
@@ -1364,7 +1278,6 @@ export function AssistantEditor({
                         <BooleanFormField
                           small
                           removeIndent
-                          alignTop
                           name="llm_relevance_filter"
                           label="AI Relevance Filter"
                           subtext="If enabled, the LLM will filter out documents that are not useful for answering the user query prior to generating a response. This typically improves the quality of the response but incurs slightly higher cost."
@@ -1373,7 +1286,6 @@ export function AssistantEditor({
                         <BooleanFormField
                           small
                           removeIndent
-                          alignTop
                           name="include_citations"
                           label="Citations"
                           subtext="Response will include citations ([1], [2], etc.) for documents referenced by the LLM. In general, we recommend to leave this enabled in order to increase trust in the LLM answer."
@@ -1381,6 +1293,16 @@ export function AssistantEditor({
                       </div>
                     </div>
                   </div>
+                  <Separator />
+
+                  <BooleanFormField
+                    small
+                    removeIndent
+                    name="datetime_aware"
+                    label="Date and Time Aware"
+                    subtext='Toggle this option to let the assistant know the current date and time (formatted like: "Thursday Jan 1, 1970 00:01"). To inject it in a specific place in the prompt, use the pattern [[CURRENT_DATETIME]]'
+                  />
+
                   <Separator />
 
                   <TextFormField
