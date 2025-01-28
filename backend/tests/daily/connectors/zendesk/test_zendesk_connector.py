@@ -4,7 +4,6 @@ import time
 from pathlib import Path
 
 import pytest
-from requests.exceptions import HTTPError
 
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.models import Document
