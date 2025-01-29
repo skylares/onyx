@@ -79,8 +79,6 @@ KV_DOCUMENTS_SEEDED_KEY = "documents_seeded"
 
 # NOTE: we use this timeout / 4 in various places to refresh a lock
 # might be worth separating this timeout into separate timeouts for each situation
-CELERY_GENERIC_BEAT_LOCK_TIMEOUT = 120
-
 CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT = 120
 
 CELERY_PRIMARY_WORKER_LOCK_TIMEOUT = 120
@@ -200,7 +198,6 @@ class SessionType(str, Enum):
 class QAFeedbackType(str, Enum):
     LIKE = "like"  # User likes the answer, used for metrics
     DISLIKE = "dislike"  # User dislikes the answer, used for metrics
-    MIXED = "mixed"  # User likes some answers and dislikes other, used for chat session metrics
 
 
 class SearchFeedbackType(str, Enum):
@@ -294,7 +291,8 @@ class OnyxRedisLocks:
     SLACK_BOT_HEARTBEAT_PREFIX = "da_heartbeat:slack_bot"
     ANONYMOUS_USER_ENABLED = "anonymous_user_enabled"
 
-    CLOUD_CHECK_INDEXING_BEAT_LOCK = "da_lock:cloud_check_indexing_beat"
+    DISCORD_BOT_LOCK = "da_lock:discord_bot"
+    DISCORD_BOT_HEARTBEAT_PREFIX = "da_heartbeat:discord_bot"
 
 
 class OnyxRedisSignals:
@@ -307,13 +305,6 @@ class OnyxCeleryPriority(int, Enum):
     MEDIUM = auto()
     LOW = auto()
     LOWEST = auto()
-
-
-# a prefix used to distinguish system wide tasks in the cloud
-ONYX_CLOUD_CELERY_TASK_PREFIX = "cloud"
-
-# the tenant id we use for system level redis operations
-ONYX_CLOUD_TENANT_ID = "cloud"
 
 
 class OnyxCeleryTask:
@@ -342,8 +333,6 @@ class OnyxCeleryTask:
     VESPA_METADATA_SYNC_TASK = "vespa_metadata_sync_task"
     CHECK_TTL_MANAGEMENT_TASK = "check_ttl_management_task"
     AUTOGENERATE_USAGE_REPORT_TASK = "autogenerate_usage_report_task"
-
-    CLOUD_CHECK_FOR_INDEXING = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_indexing"
 
 
 REDIS_SOCKET_KEEPALIVE_OPTIONS = {}

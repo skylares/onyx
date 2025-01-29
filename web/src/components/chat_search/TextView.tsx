@@ -16,19 +16,17 @@ interface TextViewProps {
   presentingDocument: OnyxDocument;
   onClose: () => void;
 }
-
 export default function TextView({
   presentingDocument,
   onClose,
 }: TextViewProps) {
   const [zoom, setZoom] = useState(100);
-  const [fileContent, setFileContent] = useState("");
-  const [fileUrl, setFileUrl] = useState("");
-  const [fileName, setFileName] = useState("");
+  const [fileContent, setFileContent] = useState<string>("");
+  const [fileUrl, setFileUrl] = useState<string>("");
+  const [fileName, setFileName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
-  const [fileType, setFileType] = useState("application/octet-stream");
+  const [fileType, setFileType] = useState<string>("application/octet-stream");
 
-  // Detect if a given MIME type is one of the recognized markdown formats
   const isMarkdownFormat = (mimeType: string): boolean => {
     const markdownFormats = [
       "text/markdown",
@@ -40,7 +38,6 @@ export default function TextView({
     return markdownFormats.some((format) => mimeType.startsWith(format));
   };
 
-  // Detect if a given MIME type can be rendered in an <iframe>
   const isSupportedIframeFormat = (mimeType: string): boolean => {
     const supportedFormats = [
       "application/pdf",
@@ -55,7 +52,6 @@ export default function TextView({
   const fetchFile = useCallback(async () => {
     setIsLoading(true);
     const fileId = presentingDocument.document_id.split("__")[1];
-
     try {
       const response = await fetch(
         `/api/chat/file/${encodeURIComponent(fileId)}`,
@@ -66,33 +62,18 @@ export default function TextView({
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       setFileUrl(url);
-
-      const originalFileName =
-        presentingDocument.semantic_identifier || "document";
-      setFileName(originalFileName);
-
-      let contentType =
+      setFileName(presentingDocument.semantic_identifier || "document");
+      const contentType =
         response.headers.get("Content-Type") || "application/octet-stream";
-
-      // If it's octet-stream but file name suggests a markdown extension, override and attempt to read as markdown
-      if (
-        contentType === "application/octet-stream" &&
-        (originalFileName.toLowerCase().endsWith(".md") ||
-          originalFileName.toLowerCase().endsWith(".markdown"))
-      ) {
-        contentType = "text/markdown";
-      }
       setFileType(contentType);
 
-      // If the final content type looks like markdown, read its text
-      if (isMarkdownFormat(contentType)) {
+      if (isMarkdownFormat(blob.type)) {
         const text = await blob.text();
         setFileContent(text);
       }
     } catch (error) {
       console.error("Error fetching file:", error);
     } finally {
-      // Keep the slight delay for a smoother loading experience
       setTimeout(() => {
         setIsLoading(false);
       }, 1000);
@@ -116,8 +97,11 @@ export default function TextView({
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 25, 100));
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl w-[90vw] flex flex-col justify-between gap-y-0 h-full max-h-[80vh] p-0">
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent
+        hideCloseIcon
+        className="max-w-5xl w-[90vw] flex flex-col justify-between gap-y-0 h-full max-h-[80vh] p-0"
+      >
         <DialogHeader className="px-4 mb-0 pt-2 pb-3 flex flex-row items-center justify-between border-b">
           <DialogTitle className="text-lg font-medium truncate">
             {fileName}
@@ -136,13 +120,12 @@ export default function TextView({
               <Download className="h-4 w-4" />
               <span className="sr-only">Download</span>
             </Button>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={() => onClose()}>
               <XIcon className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </Button>
           </div>
         </DialogHeader>
-
         <div className="mt-0 rounded-b-lg flex-1 overflow-hidden">
           <div className="flex items-center justify-center w-full h-full">
             {isLoading ? (
@@ -154,7 +137,7 @@ export default function TextView({
               </div>
             ) : (
               <div
-                className="w-full h-full transform origin-center transition-transform duration-300 ease-in-out"
+                className={`w-full h-full transform origin-center transition-transform duration-300 ease-in-out`}
                 style={{ transform: `scale(${zoom / 100})` }}
               >
                 {isSupportedIframeFormat(fileType) ? (
@@ -167,7 +150,7 @@ export default function TextView({
                   <div className="w-full h-full p-6 overflow-y-scroll overflow-x-hidden">
                     <MinimalMarkdown
                       content={fileContent}
-                      className="w-full pb-4 h-full text-lg break-words"
+                      className="w-full pb-4 h-full text-lg text-wrap break-words"
                     />
                   </div>
                 ) : (

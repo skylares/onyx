@@ -82,12 +82,11 @@ export function Modal({
           duration-300 
           ease-in-out
           relative
+          overflow-visible
           ${width ?? "w-11/12 max-w-4xl"}
           ${noPadding ? "" : removeBottomPadding ? "pt-10 px-10" : "p-10"}
+
           ${className || ""}
-          flex
-          flex-col
-          ${heightOverride ? `h-${heightOverride}` : "max-h-[90vh]"}
         `}
       >
         {onOutsideClick && !hideCloseButton && (
@@ -101,10 +100,10 @@ export function Modal({
             </button>
           </div>
         )}
-        <div className="flex-shrink-0">
+        <div className="w-full overflow-y-auto overflow-x-visible p-1 flex flex-col h-full justify-stretch">
           {title && (
             <>
-              <div className="flex">
+              <div className="flex mb-4">
                 <h2
                   className={`my-auto flex content-start gap-x-4 font-bold ${
                     titleSize || "text-2xl"
@@ -114,12 +113,18 @@ export function Modal({
                   {icon && icon({ size: 30 })}
                 </h2>
               </div>
-              {!hideDividerForTitle && <Separator className="mb-0" />}
+              {!hideDividerForTitle && <Separator />}
             </>
           )}
-        </div>
-        <div className="flex-grow overflow-y-auto overflow-x-hidden">
-          {children}
+          <div
+            style={{ height: heightOverride }}
+            className={cn(
+              noScroll ? "overflow-auto" : "overflow-x-visible",
+              !heightOverride && (height || "max-h-[60vh]")
+            )}
+          >
+            {children}
+          </div>
         </div>
       </div>
     </div>

@@ -22,7 +22,6 @@ const cspHeader = `
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  productionBrowserSourceMaps: true,
   output: "standalone",
   publicRuntimeConfig: {
     version,

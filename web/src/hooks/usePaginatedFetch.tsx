@@ -5,14 +5,12 @@ import {
   AcceptedUserSnapshot,
   InvitedUserSnapshot,
 } from "@/lib/types";
-import { ChatSessionMinimal } from "@/app/ee/admin/performance/usage/types";
 import { errorHandlingFetcher } from "@/lib/fetcher";
 
 type PaginatedType =
   | IndexAttemptSnapshot
   | AcceptedUserSnapshot
-  | InvitedUserSnapshot
-  | ChatSessionMinimal;
+  | InvitedUserSnapshot;
 
 interface PaginatedApiResponse<T extends PaginatedType> {
   items: T[];
@@ -24,7 +22,7 @@ interface PaginationConfig {
   pagesPerBatch: number;
   endpoint: string;
   query?: string;
-  filter?: Record<string, string | boolean | number | string[] | Date>;
+  filter?: Record<string, string | boolean | number | string[]>;
   refreshIntervalInMs?: number;
 }
 

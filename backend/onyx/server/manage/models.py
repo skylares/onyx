@@ -15,6 +15,7 @@ from onyx.configs.constants import AuthType
 from onyx.context.search.models import SavedSearchSettings
 from onyx.db.models import AllowedAnswerFilters
 from onyx.db.models import ChannelConfig
+from onyx.db.models import DiscordBot as DiscordBotModel
 from onyx.db.models import SlackBot as SlackAppModel
 from onyx.db.models import SlackChannelConfig as SlackChannelConfigModel
 from onyx.db.models import User
@@ -278,3 +279,33 @@ class AllUsersResponse(BaseModel):
     accepted_pages: int
     invited_pages: int
     slack_users_pages: int
+
+
+# ------------- DISCORD BOT MODELS -------------
+class DiscordBot(BaseModel):
+    """
+    This model is identical to the DiscordBotModel, but it contains
+    a `configs_count` field to make it easier to fetch the number
+    of DiscordChannelConfigs associated with a DiscordBot.
+    """
+
+    id: int
+    name: str
+    enabled: bool
+    configs_count: int
+    discord_bot_token: str
+
+    @classmethod
+    def from_model(cls, discord_bot_model: DiscordBotModel) -> "DiscordBot":
+        return cls(
+            id=discord_bot_model.id,
+            name=discord_bot_model.name,
+            enabled=discord_bot_model.enabled,
+            discord_bot_token=discord_bot_model.discord_bot_token,
+            configs_count=len(discord_bot_model.discord_channel_configs),
+        )
+
+
+class DiscordBotTokens(BaseModel):
+    bot_token: str
+    model_config = ConfigDict(frozen=True)

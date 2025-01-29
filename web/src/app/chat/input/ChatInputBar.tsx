@@ -328,7 +328,6 @@ export function ChatInputBar({
       <div className="flex  justify-center mx-auto">
         <div
           className="
-            max-w-full
             w-[800px]
             relative
             desktop:px-4
@@ -506,10 +505,7 @@ export function ChatInputBar({
               style={{ scrollbarWidth: "thin" }}
               role="textarea"
               aria-multiline
-              placeholder={`Message ${truncateString(
-                selectedAssistant.name,
-                70
-              )} assistant...`}
+              placeholder={`Message ${selectedAssistant.name} assistant...`}
               value={message}
               onKeyDown={(event) => {
                 if (
@@ -653,7 +649,7 @@ export function ChatInputBar({
               </div>
             )}
 
-            <div className="flex items-center space-x-1 mr-12 overflow-hidden px-4 pb-2">
+            <div className="flex items-center space-x-1 mr-12 px-4 pb-2">
               <ChatInputOption
                 flexPriority="stiff"
                 name="File"

@@ -15,7 +15,6 @@ export function StarterMessages({
     <div
       key={-4}
       className={`
-        short:hidden
         mx-auto
         w-full
         ${
@@ -56,7 +55,7 @@ export function StarterMessages({
                       disabled:cursor-not-allowed
                       line-clamp-3
                     `}
-                    style={{ height: "5.4rem" }}
+                    style={{ height: "5.2rem" }}
                   >
                     {starterMessage.name}
                   </button>

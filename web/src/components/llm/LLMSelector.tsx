@@ -18,47 +18,27 @@ import {
 } from "@/components/ui/select";
 
 interface LLMSelectorProps {
-  userSettings?: boolean;
   llmProviders: LLMProviderDescriptor[];
   currentLlm: string | null;
   onSelect: (value: string | null) => void;
+  userDefault?: string | null;
   requiresImageGeneration?: boolean;
 }
 
 export const LLMSelector: React.FC<LLMSelectorProps> = ({
-  userSettings,
   llmProviders,
   currentLlm,
   onSelect,
+  userDefault,
   requiresImageGeneration,
 }) => {
-  const seenModelNames = new Set();
-
-  const llmOptions = llmProviders.flatMap((provider) => {
-    return (provider.display_model_names || provider.model_names)
-      .filter((modelName) => {
-        const displayName = getDisplayNameForModel(modelName);
-        if (seenModelNames.has(displayName)) {
-          return false;
-        }
-        seenModelNames.add(displayName);
-        return true;
-      })
-      .map((modelName) => ({
-        name: getDisplayNameForModel(modelName),
-        value: structureValue(provider.name, provider.provider, modelName),
-        icon: getProviderIcon(provider.provider, modelName),
-      }));
-  });
-
-  const defaultProvider = llmProviders.find(
-    (llmProvider) => llmProvider.is_default_provider
+  const llmOptions = llmProviders.flatMap((provider) =>
+    (provider.display_model_names || provider.model_names).map((modelName) => ({
+      name: getDisplayNameForModel(modelName),
+      value: structureValue(provider.name, provider.provider, modelName),
+      icon: getProviderIcon(provider.provider, modelName),
+    }))
   );
-
-  const defaultModelName = defaultProvider?.default_model_name;
-  const defaultModelDisplayName = defaultModelName
-    ? getDisplayNameForModel(defaultModelName)
-    : null;
 
   const destructuredCurrentValue = currentLlm
     ? destructureValue(currentLlm)
@@ -75,19 +55,12 @@ export const LLMSelector: React.FC<LLMSelectorProps> = ({
         <SelectValue>
           {currentLlmName
             ? getDisplayNameForModel(currentLlmName)
-            : userSettings
-              ? "System Default"
-              : "User Default"}
+            : "User Default"}
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="z-[99999]">
-        <SelectItem className="flex" hideCheck value="default">
-          <span>{userSettings ? "System Default" : "User Default"}</span>
-          {userSettings && (
-            <span className=" my-auto font-normal ml-1">
-              ({defaultModelDisplayName})
-            </span>
-          )}
+        <SelectItem hideCheck value="default">
+          User Default
         </SelectItem>
         {llmOptions.map((option) => {
           if (
@@ -96,9 +69,16 @@ export const LLMSelector: React.FC<LLMSelectorProps> = ({
           ) {
             return (
               <SelectItem key={option.value} value={option.value}>
-                <div className="my-1 flex items-center">
+                <div className="mt-2 flex items-center">
                   {option.icon && option.icon({ size: 16 })}
                   <span className="ml-2">{option.name}</span>
+                  {userDefault &&
+                    option.value ===
+                      structureValue(userDefault, "", userDefault) && (
+                      <span className="ml-2 text-sm text-gray-500">
+                        (user default)
+                      </span>
+                    )}
                 </div>
               </SelectItem>
             );

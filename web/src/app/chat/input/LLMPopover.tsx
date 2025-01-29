@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Popover,
   PopoverContent,
@@ -32,7 +32,6 @@ export default function LLMPopover({
   requiresImageGeneration,
   currentAssistant,
 }: LLMPopoverProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const { llmOverride, updateLLMOverride, globalDefault } = llmOverrideManager;
   const currentLlm = llmOverride.modelName || globalDefault.modelName;
 
@@ -82,11 +81,10 @@ export default function LLMPopover({
     : null;
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover>
       <PopoverTrigger asChild>
         <button className="focus:outline-none">
           <ChatInputOption
-            minimize
             toggle
             flexPriority="stiff"
             name={getDisplayNameForModel(
@@ -121,10 +119,7 @@ export default function LLMPopover({
                       ? "bg-gray-100 text-text"
                       : "text-text-darker"
                   }`}
-                  onClick={() => {
-                    updateLLMOverride(destructureValue(value));
-                    setIsOpen(false);
-                  }}
+                  onClick={() => updateLLMOverride(destructureValue(value))}
                 >
                   {icon({ size: 16, className: "flex-none my-auto " })}
                   <span className="line-clamp-1 ">
@@ -137,7 +132,14 @@ export default function LLMPopover({
                           (assistant)
                         </span>
                       );
+                    } else if (globalDefault.modelName === name) {
+                      return (
+                        <span className="flex-none ml-auto text-xs">
+                          (user default)
+                        </span>
+                      );
                     }
+                    return null;
                   })()}
                 </button>
               );

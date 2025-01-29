@@ -7,7 +7,6 @@ from uuid import UUID
 from pydantic import BaseModel
 from pydantic import Field
 
-from ee.onyx.server.query_history.models import ChatSessionMinimal
 from onyx.configs.app_configs import MASK_CREDENTIAL_PREFIX
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.models import DocumentErrorSummary
@@ -213,7 +212,6 @@ PaginatedType = TypeVar(
     IndexAttemptSnapshot,
     FullUserSnapshot,
     InvitedUserSnapshot,
-    ChatSessionMinimal,
 )
 
 

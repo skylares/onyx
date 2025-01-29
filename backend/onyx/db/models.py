@@ -364,6 +364,17 @@ class SlackChannelConfig__StandardAnswerCategory(Base):
     )
 
 
+class DiscordChannelConfig__StandardAnswerCategory(Base):
+    __tablename__ = "discord_channel_config__standard_answer_category"
+
+    discord_channel_config_id: Mapped[int] = mapped_column(
+        ForeignKey("discord_channel_config.id"), primary_key=True
+    )
+    standard_answer_category_id: Mapped[int] = mapped_column(
+        ForeignKey("standard_answer_category.id"), primary_key=True
+    )
+
+
 class ChatMessage__StandardAnswer(Base):
     __tablename__ = "chat_message__standard_answer"
 
@@ -941,12 +952,6 @@ class DocumentByConnectorCredentialPair(Base):
         ForeignKey("credential.id"), primary_key=True
     )
 
-    # used to better keep track of document counts at a connector level
-    # e.g. if a document is added as part of permission syncing, it should
-    # not be counted as part of the connector's document count until
-    # the actual indexing is complete
-    has_been_indexed: Mapped[bool] = mapped_column(Boolean)
-
     connector: Mapped[Connector] = relationship(
         "Connector", back_populates="documents_by_connector"
     )
@@ -959,14 +964,6 @@ class DocumentByConnectorCredentialPair(Base):
             "idx_document_cc_pair_connector_credential",
             "connector_id",
             "credential_id",
-            unique=False,
-        ),
-        # Index to optimize get_document_counts_for_cc_pairs query pattern
-        Index(
-            "idx_document_cc_pair_counts",
-            "connector_id",
-            "credential_id",
-            "has_been_indexed",
             unique=False,
         ),
     )
@@ -1077,6 +1074,9 @@ class ChatSession(Base):
     current_alternate_model: Mapped[str | None] = mapped_column(String, default=None)
 
     slack_thread_id: Mapped[str | None] = mapped_column(
+        String, nullable=True, default=None
+    )
+    discord_thread_id: Mapped[str | None] = mapped_column(
         String, nullable=True, default=None
     )
 
@@ -1654,6 +1654,73 @@ class SlackBot(Base):
     )
 
 
+class DiscordChannelConfigJSONB(TypedDict):
+    """Configuration for Discord channel behavior"""
+
+    channel_name: str
+    channel_id: str  # Uses Discord's snowflake IDs
+
+    answer_filters: NotRequired[list[AllowedAnswerFilters]]
+    show_continue_in_web_ui: NotRequired[bool]  # Defaults to False
+
+    respond_mention_only: NotRequired[bool]  # Defaults to False
+    respond_to_bots: NotRequired[bool]  # Defaults to False
+
+    allowed_role_ids: NotRequired[list[str]]
+
+    allow_threads: NotRequired[bool]  # Defaults to True
+    auto_thread: NotRequired[bool]  # Defaults to True
+
+    follow_up_tags: NotRequired[list[str]]
+    can_embed: NotRequired[bool]  # Use embeds in responses
+
+
+class DiscordChannelConfig(Base):
+    __tablename__ = "discord_channel_config"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    discord_bot_id: Mapped[int] = mapped_column(
+        ForeignKey("discord_bot.id"), nullable=False
+    )
+    persona_id: Mapped[int | None] = mapped_column(
+        ForeignKey("persona.id"), nullable=True
+    )
+    channel_config: Mapped[DiscordChannelConfigJSONB] = mapped_column(
+        postgresql.JSONB(), nullable=False
+    )
+
+    enable_auto_filters: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+
+    persona: Mapped[Persona | None] = relationship("Persona")
+    discord_bot: Mapped["DiscordBot"] = relationship(
+        "DiscordBot",
+        back_populates="discord_channel_configs",
+    )
+    standard_answer_categories: Mapped[list["StandardAnswerCategory"]] = relationship(
+        "StandardAnswerCategory",
+        secondary=DiscordChannelConfig__StandardAnswerCategory.__table__,
+        back_populates="discord_channel_configs",
+    )
+
+
+class DiscordBot(Base):
+    __tablename__ = "discord_bot"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    discord_bot_token: Mapped[str] = mapped_column(EncryptedString(), unique=True)
+
+    discord_channel_configs: Mapped[list[DiscordChannelConfig]] = relationship(
+        "DiscordChannelConfig",
+        back_populates="discord_bot",
+        cascade="all, delete-orphan",
+    )
+
+
 class Milestone(Base):
     # This table is used to track significant events for a deployment towards finding value
     # The table is currently not used for features but it may be used in the future to inform
@@ -1923,6 +1990,11 @@ class StandardAnswerCategory(Base):
     slack_channel_configs: Mapped[list["SlackChannelConfig"]] = relationship(
         "SlackChannelConfig",
         secondary=SlackChannelConfig__StandardAnswerCategory.__table__,
+        back_populates="standard_answer_categories",
+    )
+    discord_channel_configs: Mapped[list["DiscordChannelConfig"]] = relationship(
+        "DiscordChannelConfig",
+        secondary=DiscordChannelConfig__StandardAnswerCategory.__table__,
         back_populates="standard_answer_categories",
     )
 

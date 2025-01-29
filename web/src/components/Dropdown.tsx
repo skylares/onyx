@@ -10,6 +10,8 @@ import {
 import { ChevronDownIcon, PlusIcon } from "./icons/icons";
 import { FiCheck, FiChevronDown } from "react-icons/fi";
 import { Popover } from "./popover/Popover";
+import { createPortal } from "react-dom";
+import { useDropdownPosition } from "@/lib/dropdown";
 
 export interface Option<T> {
   name: string;
@@ -50,18 +52,17 @@ export function SearchMultiSelectDropdown({
   options,
   onSelect,
   itemComponent,
-  onCreate,
-  onDelete,
+  onCreateLabel,
 }: {
   options: StringOrNumberOption[];
   onSelect: (selected: StringOrNumberOption) => void;
   itemComponent?: FC<{ option: StringOrNumberOption }>;
-  onCreate?: (name: string) => void;
-  onDelete?: (name: string) => void;
+  onCreateLabel?: (name: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownMenuRef = useRef<HTMLDivElement>(null);
 
   const handleSelect = (option: StringOrNumberOption) => {
     onSelect(option);
@@ -77,7 +78,9 @@ export function SearchMultiSelectDropdown({
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        !dropdownRef.current.contains(event.target as Node) &&
+        dropdownMenuRef.current &&
+        !dropdownMenuRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
       }
@@ -88,6 +91,8 @@ export function SearchMultiSelectDropdown({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useDropdownPosition({ isOpen, dropdownRef, dropdownMenuRef });
 
   return (
     <div className="relative text-left w-full" ref={dropdownRef}>
@@ -105,11 +110,24 @@ export function SearchMultiSelectDropdown({
             }
           }}
           onFocus={() => setIsOpen(true)}
-          className="inline-flex justify-between w-full px-4 py-2 text-sm bg-background border border-border rounded-md shadow-sm"
+          className={`inline-flex 
+            justify-between 
+            w-full 
+            px-4 
+            py-2 
+            text-sm 
+            bg-background
+            border
+            border-border
+            rounded-md 
+            shadow-sm 
+            `}
         />
         <button
           type="button"
-          className="absolute top-0 right-0 text-sm h-full px-2 border-l border-border"
+          className={`absolute top-0 right-0 
+              text-sm 
+              h-full px-2 border-l border-border`}
           aria-expanded={isOpen}
           aria-haspopup="true"
           onClick={() => setIsOpen(!isOpen)}
@@ -118,65 +136,78 @@ export function SearchMultiSelectDropdown({
         </button>
       </div>
 
-      {isOpen && (
-        <div className="absolute z-10 mt-1 w-full rounded-md shadow-lg bg-background border border-border max-h-60 overflow-y-auto">
+      {isOpen &&
+        createPortal(
           <div
-            role="menu"
-            aria-orientation="vertical"
-            aria-labelledby="options-menu"
+            ref={dropdownMenuRef}
+            className={`origin-bottom-right
+                rounded-md
+                shadow-lg
+                bg-background
+                border
+                border-border
+                max-h-80
+                overflow-y-auto
+                overscroll-contain`}
           >
-            {filteredOptions.map((option, index) =>
-              itemComponent ? (
-                <div
-                  key={option.name}
-                  onClick={() => {
-                    handleSelect(option);
-                  }}
-                >
-                  {itemComponent({ option })}
-                </div>
-              ) : (
-                <StandardDropdownOption
-                  key={index}
-                  option={option}
-                  index={index}
-                  handleSelect={handleSelect}
-                />
-              )
-            )}
-
-            {onCreate &&
-              searchTerm.trim() !== "" &&
-              !filteredOptions.some(
-                (option) =>
-                  option.name.toLowerCase() === searchTerm.toLowerCase()
-              ) && (
-                <>
-                  <div className="border-t border-border"></div>
-                  <button
-                    className="w-full text-left flex items-center px-4 py-2 text-sm hover:bg-hover"
-                    role="menuitem"
+            <div
+              role="menu"
+              aria-orientation="vertical"
+              aria-labelledby="options-menu"
+            >
+              {filteredOptions.map((option, index) =>
+                itemComponent ? (
+                  <div
+                    key={option.name}
                     onClick={() => {
-                      onCreate(searchTerm);
-                      setIsOpen(false);
-                      setSearchTerm("");
+                      handleSelect(option);
                     }}
                   >
-                    <PlusIcon className="w-4 h-4 mr-2" />
-                    Create label &quot;{searchTerm}&quot;
-                  </button>
-                </>
+                    {itemComponent({ option })}
+                  </div>
+                ) : (
+                  <StandardDropdownOption
+                    key={index}
+                    option={option}
+                    index={index}
+                    handleSelect={handleSelect}
+                  />
+                )
               )}
 
-            {filteredOptions.length === 0 &&
-              (!onCreate || searchTerm.trim() === "") && (
-                <div className="px-4 py-2.5 text-sm text-text-muted">
-                  No matches found
-                </div>
-              )}
-          </div>
-        </div>
-      )}
+              {onCreateLabel &&
+                searchTerm.trim() !== "" &&
+                !filteredOptions.some(
+                  (option) =>
+                    option.name.toLowerCase() === searchTerm.toLowerCase()
+                ) && (
+                  <>
+                    <div className="border-t border-border"></div>
+                    <button
+                      className="w-full  text-left flex items-center px-4 py-2  text-sm hover:bg-hover"
+                      role="menuitem"
+                      onClick={() => {
+                        onCreateLabel(searchTerm);
+                        setIsOpen(false);
+                        setSearchTerm("");
+                      }}
+                    >
+                      <PlusIcon className="w-4 h-4 mr-2" />
+                      Create label &quot;{searchTerm}&quot;
+                    </button>
+                  </>
+                )}
+
+              {filteredOptions.length === 0 &&
+                (!onCreateLabel || searchTerm.trim() === "") && (
+                  <div className="px-4 py-2.5 text-sm text-text-muted">
+                    No matches found
+                  </div>
+                )}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

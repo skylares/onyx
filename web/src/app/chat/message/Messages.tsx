@@ -9,6 +9,8 @@ import {
 } from "react-icons/fi";
 import { FeedbackType } from "../types";
 import React, {
+  memo,
+  ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -19,10 +21,7 @@ import React, {
 import ReactMarkdown from "react-markdown";
 import { OnyxDocument, FilteredOnyxDocument } from "@/lib/search/interfaces";
 import { SearchSummary } from "./SearchSummary";
-import {
-  markdownToHtml,
-  getMarkdownForSelection,
-} from "@/app/chat/message/codeUtils";
+
 import { SkippedSearch } from "./SkippedSearch";
 import remarkGfm from "remark-gfm";
 import { CopyButton } from "@/components/CopyButton";
@@ -38,10 +37,12 @@ import { DocumentPreview } from "../files/documents/DocumentPreview";
 import { InMessageImage } from "../files/images/InMessageImage";
 import { CodeBlock } from "./CodeBlock";
 import rehypePrism from "rehype-prism-plus";
+
 import "prismjs/themes/prism-tomorrow.css";
 import "./custom-code-styles.css";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
+
 import { LikeFeedback, DislikeFeedback } from "@/components/icons/icons";
 import {
   CustomTooltip,
@@ -67,6 +68,7 @@ import CsvContent from "../../../components/tools/CSVContent";
 import SourceCard, {
   SeeMoreBlock,
 } from "@/components/chat_search/sources/SourceCard";
+
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
@@ -162,6 +164,7 @@ function FileDisplay({
 export const AIMessage = ({
   regenerate,
   overriddenModel,
+  selectedMessageForDocDisplay,
   continueGenerating,
   shared,
   isActive,
@@ -169,6 +172,7 @@ export const AIMessage = ({
   alternativeAssistant,
   docs,
   messageId,
+  documentSelectionToggled,
   content,
   files,
   selectedDocuments,
@@ -178,6 +182,7 @@ export const AIMessage = ({
   isComplete,
   hasDocs,
   handleFeedback,
+  handleShowRetrieved,
   handleSearchQueryEdit,
   handleForceSearch,
   retrievalDisabled,
@@ -189,6 +194,7 @@ export const AIMessage = ({
   toggledDocumentSidebar,
 }: {
   index?: number;
+  selectedMessageForDocDisplay?: number | null;
   shared?: boolean;
   isActive?: boolean;
   continueGenerating?: () => void;
@@ -201,6 +207,7 @@ export const AIMessage = ({
   currentPersona: Persona;
   messageId: number | null;
   content: string | JSX.Element;
+  documentSelectionToggled?: boolean;
   files?: FileDescriptor[];
   query?: string;
   citedDocuments?: [string, OnyxDocument][] | null;
@@ -209,6 +216,7 @@ export const AIMessage = ({
   toggledDocumentSidebar?: boolean;
   hasDocs?: boolean;
   handleFeedback?: (feedbackType: FeedbackType) => void;
+  handleShowRetrieved?: (messageNumber: number | null) => void;
   handleSearchQueryEdit?: (query: string) => void;
   handleForceSearch?: () => void;
   retrievalDisabled?: boolean;
@@ -365,28 +373,15 @@ export const AIMessage = ({
   );
 
   const renderedMarkdown = useMemo(() => {
-    if (typeof finalContent !== "string") {
-      return finalContent;
-    }
-
-    // Create a hidden div with the HTML content for copying
-    const htmlContent = markdownToHtml(finalContent);
-
     return (
-      <>
-        <div
-          style={{ position: "absolute", left: "-9999px" }}
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
-        />
-        <ReactMarkdown
-          className="prose max-w-full text-base"
-          components={markdownComponents}
-          remarkPlugins={[remarkGfm, remarkMath]}
-          rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
-        >
-          {finalContent}
-        </ReactMarkdown>
-      </>
+      <ReactMarkdown
+        className="prose max-w-full text-base"
+        components={markdownComponents}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
+      >
+        {finalContent as string}
+      </ReactMarkdown>
     );
   }, [finalContent, markdownComponents]);
 
@@ -518,68 +513,7 @@ export const AIMessage = ({
 
                         {typeof content === "string" ? (
                           <div className="overflow-x-visible max-w-content-max">
-                            <div
-                              contentEditable="true"
-                              suppressContentEditableWarning
-                              className="focus:outline-none cursor-text select-text"
-                              style={{
-                                MozUserModify: "read-only",
-                                WebkitUserModify: "read-only",
-                              }}
-                              onCopy={(e) => {
-                                e.preventDefault();
-                                const selection = window.getSelection();
-                                const selectedPlainText =
-                                  selection?.toString() || "";
-                                if (!selectedPlainText) {
-                                  // If no text is selected, copy the full content
-                                  const contentStr =
-                                    typeof content === "string"
-                                      ? content
-                                      : (
-                                          content as JSX.Element
-                                        ).props?.children?.toString() || "";
-                                  const clipboardItem = new ClipboardItem({
-                                    "text/html": new Blob(
-                                      [
-                                        typeof content === "string"
-                                          ? markdownToHtml(content)
-                                          : contentStr,
-                                      ],
-                                      { type: "text/html" }
-                                    ),
-                                    "text/plain": new Blob([contentStr], {
-                                      type: "text/plain",
-                                    }),
-                                  });
-                                  navigator.clipboard.write([clipboardItem]);
-                                  return;
-                                }
-
-                                const contentStr =
-                                  typeof content === "string"
-                                    ? content
-                                    : (
-                                        content as JSX.Element
-                                      ).props?.children?.toString() || "";
-                                const markdownText = getMarkdownForSelection(
-                                  contentStr,
-                                  selectedPlainText
-                                );
-                                const clipboardItem = new ClipboardItem({
-                                  "text/html": new Blob(
-                                    [markdownToHtml(markdownText)],
-                                    { type: "text/html" }
-                                  ),
-                                  "text/plain": new Blob([selectedPlainText], {
-                                    type: "text/plain",
-                                  }),
-                                });
-                                navigator.clipboard.write([clipboardItem]);
-                              }}
-                            >
-                              {renderedMarkdown}
-                            </div>
+                            {renderedMarkdown}
                           </div>
                         ) : (
                           content
@@ -596,7 +530,7 @@ export const AIMessage = ({
                         className={`
                         flex md:flex-row gap-x-0.5 mt-1
                         transition-transform duration-300 ease-in-out
-                        transform opacity-100 "
+                        transform opacity-100 translate-y-0"
                   `}
                       >
                         <TooltipGroup>
@@ -625,16 +559,7 @@ export const AIMessage = ({
                             )}
                           </div>
                           <CustomTooltip showTick line content="Copy">
-                            <CopyButton
-                              content={
-                                typeof content === "string"
-                                  ? {
-                                      html: markdownToHtml(content),
-                                      plainText: content,
-                                    }
-                                  : content.toString()
-                              }
-                            />
+                            <CopyButton content={content.toString()} />
                           </CustomTooltip>
                           <CustomTooltip showTick line content="Good response">
                             <HoverableIcon
@@ -686,6 +611,10 @@ export const AIMessage = ({
                             settings?.isMobile) &&
                           "!opacity-100"
                         }
+                        translate-y-2 ${
+                          (isHovering || settings?.isMobile) && "!translate-y-0"
+                        }
+                        transition-transform duration-300 ease-in-out 
                         flex md:flex-row gap-x-0.5 bg-background-125/40 -mx-1.5 p-1.5 rounded-lg
                         `}
                       >
@@ -715,16 +644,7 @@ export const AIMessage = ({
                             )}
                           </div>
                           <CustomTooltip showTick line content="Copy">
-                            <CopyButton
-                              content={
-                                typeof content === "string"
-                                  ? {
-                                      html: markdownToHtml(content),
-                                      plainText: content,
-                                    }
-                                  : content.toString()
-                              }
-                            />
+                            <CopyButton content={content.toString()} />
                           </CustomTooltip>
 
                           <CustomTooltip showTick line content="Good response">

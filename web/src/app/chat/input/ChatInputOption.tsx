@@ -15,7 +15,6 @@ interface ChatInputOptionProps {
   tooltipContent?: React.ReactNode;
   flexPriority?: "shrink" | "stiff" | "second";
   toggle?: boolean;
-  minimize?: boolean;
 }
 
 export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
@@ -27,9 +26,27 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
   tooltipContent,
   toggle,
   onClick,
-  minimize,
 }) => {
+  const [isDropupVisible, setDropupVisible] = useState(false);
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const componentRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        componentRef.current &&
+        !componentRef.current.contains(event.target as Node)
+      ) {
+        setIsTooltipVisible(false);
+        setDropupVisible(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <TooltipProvider>
@@ -69,7 +86,7 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
               size={size}
               className="h-4 w-4 my-auto text-[#4a4a4a] group-hover:text-text flex-none"
             />
-            <div className={`flex items-center ${minimize && "mobile:hidden"}`}>
+            <div className="flex items-center">
               {name && (
                 <span className="text-sm text-[#4a4a4a] group-hover:text-text break-all line-clamp-1">
                   {name}

@@ -106,7 +106,9 @@ export default function QueryPage(props: { params: Promise<{ id: string }> }) {
 
         <div className="flex flex-col">
           {chatSessionSnapshot.messages.map((message) => {
-            return <MessageDisplay key={message.id} message={message} />;
+            return (
+              <MessageDisplay key={message.time_created} message={message} />
+            );
           })}
         </div>
       </CardSection>
