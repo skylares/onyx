@@ -72,6 +72,7 @@ from onyx.server.long_term_logs.long_term_logs_api import (
     router as long_term_logs_router,
 )
 from onyx.server.manage.administrative import router as admin_router
+from onyx.server.manage.discord_bot import router as discord_bot_management_router
 from onyx.server.manage.embedding.api import admin_router as embedding_admin_router
 from onyx.server.manage.embedding.api import basic_router as embedding_router
 from onyx.server.manage.get_state import router as state_router
@@ -292,6 +293,9 @@ def get_application() -> FastAPI:
     include_router_with_global_prefix_prepended(application, search_settings_router)
     include_router_with_global_prefix_prepended(
         application, slack_bot_management_router
+    )
+    include_router_with_global_prefix_prepended(
+        application, discord_bot_management_router
     )
     include_router_with_global_prefix_prepended(application, persona_router)
     include_router_with_global_prefix_prepended(application, admin_persona_router)

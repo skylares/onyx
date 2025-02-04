@@ -16,9 +16,11 @@ from onyx.context.search.models import SavedSearchSettings
 from onyx.db.models import AllowedAnswerFilters
 from onyx.db.models import ChannelConfig
 from onyx.db.models import DiscordBot as DiscordBotModel
+from onyx.db.models import DiscordChannelConfig as DiscordChannelConfigModel
 from onyx.db.models import SlackBot as SlackAppModel
 from onyx.db.models import SlackChannelConfig as SlackChannelConfigModel
 from onyx.db.models import User
+from onyx.onyxbot.discord.config import VALID_DISCORD_FILTERS
 from onyx.onyxbot.slack.config import VALID_SLACK_FILTERS
 from onyx.server.features.persona.models import PersonaSnapshot
 from onyx.server.models import FullUserSnapshot
@@ -306,6 +308,79 @@ class DiscordBot(BaseModel):
         )
 
 
-class DiscordBotTokens(BaseModel):
+class DiscordBotCreationRequest(BaseModel):
+    name: str
+    enabled: bool
+    bot_token: str
+
+
+class DiscordBotToken(BaseModel):
     bot_token: str
     model_config = ConfigDict(frozen=True)
+
+
+class DiscordChannelConfigCreationRequest(BaseModel):
+    discord_bot_id: int
+    # currently, a persona is created for each Discord channel config
+    # in the future, `document_sets` will probably be replaced
+    # by an optional `PersonaSnapshot` object. Keeping it like this
+    # for now for simplicity / speed of development
+    document_sets: list[int] | None = None
+
+    # NOTE: only one of `document_sets` / `persona_id` should be set
+    persona_id: int | None = None
+
+    channel_name: str
+    respond_mention_only: bool = False
+    respond_to_bots: bool = False
+    show_continue_in_web_ui: bool = True
+    enable_auto_filters: bool = False
+    # If no team members, assume respond in the channel to everyone
+    respond_member_group_list: list[str] = Field(default_factory=list)
+    answer_filters: list[AllowedAnswerFilters] = Field(default_factory=list)
+    # list of user emails
+    follow_up_tags: list[str] | None = None
+
+    @field_validator("answer_filters", mode="before")
+    @classmethod
+    def validate_filters(cls, value: list[str]) -> list[str]:
+        if any(test not in VALID_DISCORD_FILTERS for test in value):
+            raise ValueError(
+                f"Discord Answer filters must be one of {VALID_DISCORD_FILTERS}"
+            )
+        return value
+
+    @model_validator(mode="after")
+    def validate_document_sets_and_persona_id(
+        self,
+    ) -> "DiscordChannelConfigCreationRequest":
+        if self.document_sets and self.persona_id:
+            raise ValueError("Only one of `document_sets` / `persona_id` should be set")
+
+        return self
+
+
+class DiscordChannelConfig(BaseModel):
+    discord_bot_id: int
+    id: int
+    persona: PersonaSnapshot | None
+    channel_config: ChannelConfig
+    enable_auto_filters: bool
+
+    @classmethod
+    def from_model(
+        cls, discord_channel_config_model: DiscordChannelConfigModel
+    ) -> "DiscordChannelConfig":
+        return cls(
+            id=discord_channel_config_model.id,
+            discord_bot_id=discord_channel_config_model.discord_bot_id,
+            persona=(
+                PersonaSnapshot.from_model(
+                    discord_channel_config_model.persona, allow_deleted=True
+                )
+                if discord_channel_config_model.persona
+                else None
+            ),
+            channel_config=discord_channel_config_model.channel_config,
+            enable_auto_filters=discord_channel_config_model.enable_auto_filters,
+        )

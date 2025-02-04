@@ -54,5 +54,18 @@ def fetch_discord_bot(
     return discord_bot
 
 
+def remove_discord_bot(
+    db_session: Session,
+    discord_bot_id: int,
+) -> None:
+    discord_bot = fetch_discord_bot(
+        db_session=db_session,
+        discord_bot_id=discord_bot_id,
+    )
+
+    db_session.delete(discord_bot)
+    db_session.commit()
+
+
 def fetch_discord_bots(db_session: Session) -> Sequence[DiscordBot]:
     return db_session.scalars(select(DiscordBot)).all()

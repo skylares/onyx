@@ -22,6 +22,7 @@ import {
   ClosedBookIcon,
   SearchIcon,
   DocumentIcon2,
+  DiscordIconSkeleton,
 } from "@/components/icons/icons";
 import { UserRole } from "@/lib/types";
 import { FiActivity, FiBarChart2 } from "react-icons/fi";
@@ -175,6 +176,15 @@ export function ClientLayout({
                             </div>
                           ),
                           link: "/admin/bots",
+                        },
+                        {
+                          name: (
+                            <div className="flex">
+                              <DiscordIconSkeleton className="text-icon-settings-sidebar" />
+                              <div className="ml-1">Discord Bots</div>
+                            </div>
+                          ),
+                          link: "/admin/discord-bot",
                         },
                         {
                           name: (

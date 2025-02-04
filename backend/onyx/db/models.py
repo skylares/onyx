@@ -364,17 +364,6 @@ class SlackChannelConfig__StandardAnswerCategory(Base):
     )
 
 
-class DiscordChannelConfig__StandardAnswerCategory(Base):
-    __tablename__ = "discord_channel_config__standard_answer_category"
-
-    discord_channel_config_id: Mapped[int] = mapped_column(
-        ForeignKey("discord_channel_config.id"), primary_key=True
-    )
-    standard_answer_category_id: Mapped[int] = mapped_column(
-        ForeignKey("standard_answer_category.id"), primary_key=True
-    )
-
-
 class ChatMessage__StandardAnswer(Base):
     __tablename__ = "chat_message__standard_answer"
 
@@ -1661,18 +1650,14 @@ class DiscordChannelConfigJSONB(TypedDict):
     channel_id: str  # Uses Discord's snowflake IDs
 
     answer_filters: NotRequired[list[AllowedAnswerFilters]]
-    show_continue_in_web_ui: NotRequired[bool]  # Defaults to False
+    show_continue_in_web_ui: NotRequired[bool]  # Defaults to True
 
     respond_mention_only: NotRequired[bool]  # Defaults to False
     respond_to_bots: NotRequired[bool]  # Defaults to False
 
     allowed_role_ids: NotRequired[list[str]]
 
-    allow_threads: NotRequired[bool]  # Defaults to True
     auto_thread: NotRequired[bool]  # Defaults to True
-
-    follow_up_tags: NotRequired[list[str]]
-    can_embed: NotRequired[bool]  # Use embeds in responses
 
 
 class DiscordChannelConfig(Base):
@@ -1688,19 +1673,12 @@ class DiscordChannelConfig(Base):
     channel_config: Mapped[DiscordChannelConfigJSONB] = mapped_column(
         postgresql.JSONB(), nullable=False
     )
-
     enable_auto_filters: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False
     )
-
     persona: Mapped[Persona | None] = relationship("Persona")
     discord_bot: Mapped["DiscordBot"] = relationship(
         "DiscordBot",
-        back_populates="discord_channel_configs",
-    )
-    standard_answer_categories: Mapped[list["StandardAnswerCategory"]] = relationship(
-        "StandardAnswerCategory",
-        secondary=DiscordChannelConfig__StandardAnswerCategory.__table__,
         back_populates="discord_channel_configs",
     )
 
@@ -1990,11 +1968,6 @@ class StandardAnswerCategory(Base):
     slack_channel_configs: Mapped[list["SlackChannelConfig"]] = relationship(
         "SlackChannelConfig",
         secondary=SlackChannelConfig__StandardAnswerCategory.__table__,
-        back_populates="standard_answer_categories",
-    )
-    discord_channel_configs: Mapped[list["DiscordChannelConfig"]] = relationship(
-        "DiscordChannelConfig",
-        secondary=DiscordChannelConfig__StandardAnswerCategory.__table__,
         back_populates="standard_answer_categories",
     )
 

@@ -279,6 +279,41 @@ export interface SlackBotTokens {
   app_token: string;
 }
 
+// DISCORD BOT CONFIGS
+
+export interface DiscordChannelConfigJSONB {
+  channel_name: string;
+  channel_id: string;
+  answer_filters?: AnswerFilterOption[];
+  show_continue_in_web_ui?: boolean;
+  respond_mention_only?: boolean;
+  respond_to_bots?: boolean;
+  auto_thread?: boolean;
+  allowed_role_ids?: string[];
+  follow_up_tags?: string[];
+}
+
+export interface DiscordChannelConfig {
+  id: number;
+  discord_bot_id: number;
+  persona: Persona | null;
+  channel_config: DiscordChannelConfigJSONB;
+  enable_auto_filters: boolean;
+}
+
+export interface DiscordBotToken {
+  bot_token: string;
+}
+
+export interface DiscordBot {
+  id: number;
+  name: string;
+  enabled: boolean;
+  configs_count: number;
+
+  bot_token: DiscordBotToken;
+}
+
 /* EE Only Types */
 export interface UserGroup {
   id: number;
